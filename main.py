@@ -5,8 +5,9 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from flask import *
-from session_hac import session_hac
+from lxml import etree
 
+from session_hac import session_hac
 
 # ALL FUNCTIONS HAVE TO RUN IN THE ORDER AS IN BELOW
 
@@ -23,30 +24,31 @@ app.config['SESSION_TYPE'] = 'filesystem'
 app.config['FLASK_ENV'] = 'production'
 
 # define users and headers
-headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                         'Chrome/81.0.4044.138 Safari/537.36'}
+headers = {
+    'user-agent': 'Mozilla/5.0 (iPad; CPU OS 11_0 like Mac OS X) AppleWebKit/604.1.34 (KHTML, like Gecko) Version/11.0 Mobile/15A5341f Safari/604.1'}
 
 
 # defines the app route for login
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET'])
 # function in order to get login
 def login():
     try:
+        session['report run'] = 0
         # log-in site at hac website and set dictionary values
-        base_site = "https://hac.friscoisd.org/HomeAccess/Account/LogOn?ReturnUrl=%2fhomeaccess%2f"
-        user_name = str(request.args['username'])
+        if request.cookies.get('user') is not None:
+            user_name = request.cookies.get('user')
+            pass_word = request.cookies.get('pass')
+        else:
+            user_name = str(request.args['username'])
+            pass_word = str(request.args['password'])
+        base_site = "https://hac.friscoisd.org/HomeAccess/Account/LogOn?ReturnUrl=%2fHomeAccess%2f"
         session['username'] = user_name
-        pass_word = str(request.args['password'])
 
         # define session variables
         session['server_status'] = False
         session['nosvr'] = False
 
-        # sets session variables to default
-        session['check'] = 'unused'
-        session['expo'] = 'unused'
-
-        # define a function for the 17 sec time
+        # define a function for the 22 sec time
         @copy_current_request_context
         def time_exceed(bool):
             # if False or server error
@@ -56,18 +58,23 @@ def login():
             else:
                 timer.cancel()
 
-        # sets a dictionary and assigns login success variable
+        # sets the hac session and sets a dictionary and assigns login success variable
+        # also finds the request verification token to pass into form
+        session_hac = requests.Session()
+        response_one = session_hac.get(base_site).content
+        soup_first = BeautifulSoup(response_one, "lxml")
+        request_ver_token = soup_first.find('input', {'name': '__RequestVerificationToken'})['value']
         login_data = {
+            "__RequestVerificationToken": request_ver_token,
             "Database": 10,
             "VerificationOption": "UsernamePassword",
             "LogOnDetails.UserName": user_name,
             "LogOnDetails.Password": pass_word
         }
 
-        # set the timer for 17 seconds, so it will execute a code if nothing is returned in 17 sec
-        timer = threading.Timer(17, time_exceed, [session['server_status']])
+        # set the timer for 22 seconds, so it will execute a code if nothing is returned in 22 sec
+        timer = threading.Timer(13, time_exceed, [session['server_status']])
         timer.start()
-        session_hac = requests.Session()
 
         # posts info to login and then goes to the logged in page
         login_status = session_hac.post(base_site, data=login_data, headers=headers)
@@ -83,52 +90,7 @@ def login():
         if error is not None:
             timer.cancel()
             return_login = {"status": "error", "msg": "incorrect username and/or password"}
-            return jsonify(return_login)
-
-        # get the .aspx page
-        class_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/Assignments.aspx"
-        class_page = session_hac.get(class_site, cookies=session.get('hac cookies'), headers=headers)
-
-        # get class.content from the response
-        r_class = class_page.content
-
-        # sets the session to true
-        session['server_status'] = True
-
-        #Added by Krishna
-
-        # if nosvr is False
-        if not session['nosvr']:
-            return redirect(url_for("info"))
-         # return jsonify({"redirect": "info"})
-
-        else:
-            return jsonify({"status": "error", "msg": "fisd server down"})
-    except (AttributeError, KeyError, TypeError, ValueError):
-        return jsonify({"status": "error", "msg": "fisd server down"})
-
-
-# defines the app route for info
-@app.route('/info')
-# function in order to get info
-def info():
-    # define variables for try and except
-    x = session.get('check')
-    y = session.get('expo')
-    print(session.get('hac cookies'))
-    try:
-        # creates a soup object
-        info_text = "https://hac.friscoisd.org/HomeAccess/Content/Student/MyProfile.aspx"
-        r_info = session_hac.get(info_text, cookies=session.get('hac cookies'), headers=headers)
-        r_text = r_info.content
-        soup_info = BeautifulSoup(r_text, "lxml")
-
-        # proceeds with the right login and sets name of student
-        div_main = soup_info.find("div", {"class": "sg-profile-header sg-content-grid-container sg-container-content"})
-        span = div_main.find("span", id="plnMain_lblName").text.split()
-        span = span[0] + " " + span[len(span) - 1]
-        name_student = span
-        session['student name'] = name_student
+            return jsonify(return_login), 401
 
         # gets the info from the specified site and sets grade of student
         reg_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/Registration.aspx"
@@ -140,26 +102,42 @@ def info():
 
         # finds and prints and text value of the <span> tabs for school and grade
         school_student = soup_reg.find("span", id="plnMain_lblBuildingName").text
+        session['student school'] = school_student
+
+        # creates a soup object
+        info_text = "https://hac.friscoisd.org/HomeAccess/Content/Student/MyProfile.aspx"
+        r_info = session_hac.get(info_text, cookies=session['hac cookies'], headers=headers)
+        r_text = r_info.content
+        soup_info = BeautifulSoup(r_text, "lxml")
+
+        # proceeds with the right login and sets name of student
+        div_main = soup_info.find("div", {"class": "sg-profile-header sg-content-grid-container sg-container-content"})
+        span = div_main.find("span", id="plnMain_lblName").text.split()
+        span = span[0] + " " + span[len(span) - 1]
+        name_student = span
+        session['student name'] = name_student
 
         # creates a soup object
         class_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/Classes.aspx"
         r_class = session_hac.get(class_site, cookies=session.get('hac cookies'), headers=headers)
         r_class = r_class.content
         soup_id = BeautifulSoup(r_class, "lxml")
-
-        # gets the text value of span tag
         student_id = soup_id.find("span", id="plnMain_lblStudentIDValue").text
+
         # sets the user info to a dictionary and then returns it
         info_dict = {'Name': name_student, 'Home Campus': school_student, 'Grade': grade_student, 'ID': student_id}
-        return jsonify(info_dict)
-    except (AttributeError, KeyError, TypeError) as e:
-        if x == y:
-            print(e)
-            session['check'] = 'used'
-            return redirect(url_for("info"))
+        session['student info'] = info_dict
+
+        # sets the session to true
+        session['server_status'] = True
+
+        # if nosvr is False
+        if not session['nosvr']:
+            return redirect(url_for("grades"))
         else:
-            session['check'] = 'unused'
-            return jsonify({"status": "error", "msg": "unable to receive info, please retry"})
+            return jsonify({"status": "error", "msg": "fisd server down"}), 404
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return jsonify({"status": "error", "msg": "fisd server down"}), 404
 
 
 # defines the app route for report run
@@ -174,31 +152,50 @@ def report_run():
 
     # report card-run data and input
     # can't run all report card
-    report_run_main = run_input
-    session['report run'] = report_run_main
-
-    # return the redirected url
-    return redirect(url_for("averages"))
+    session['report run'] = run_input
+    return redirect(url_for("grades"))
 
 
-# defines the app route for averages
-@app.route('/averages')
-# function in order to get averages
-def averages():
-    # define variables for try and except
-    x = session.get('check')
-    y = session.get('expo')
+# defines the app route for grades
+@app.route('/grades')
+# function in order to get grades
+def grades():
     try:
+        # define session variables
+        session['server_status'] = False
+        session['nosvr'] = False
+
+        # after timer is done, complete this function
+        @copy_current_request_context
+        def time_exceed(bool):
+            # if False or server error
+            if not bool:
+                session['nosvr'] = True
+                timer.cancel()
+            else:
+                timer.cancel()
+
+        # sets timer for 22 seconds
+        timer = threading.Timer(14, time_exceed, [session['server_status']])
+        timer.start()
+
         # checks if report run is in session, when opening app
         # defines the link
         grade_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/Assignments.aspx"
 
-        # if report is not there, then do this, if it is new
-        if 'report run' not in session:
+        # if report is not 0, then do this, if it is new
+        if session['report run'] == 0:
             # creates a soup object with specified info
-            classes = session_hac.get(grade_site, cookies=session['hac cookies'], headers=headers)
+            classes = session_hac.get(grade_site, cookies=session.get('hac cookies'), headers=headers)
             classes_text = classes.content
             soup = BeautifulSoup(classes_text, "lxml")
+
+            # sets the session to true
+            session['server_status'] = True
+
+            # if nosvr is False
+            if session['nosvr']:
+                return jsonify({"status": "error", "msg": "fisd server down"}), 404
 
             # finds all <a> tabs in the class specified
             a = soup.find_all("a", {"class": "sg-header-heading"})
@@ -210,13 +207,13 @@ def averages():
 
             # get and set class names
             class_name = []
+            class_score = []
+            class_avg = []
             for i in range(len(a)):
                 class_name.append(" ".join((a[i].text.rstrip().split())[3:]))
 
             # find <span> tab in specified class
             score = soup.find_all("span", {"class": "sg-header-heading sg-right"})
-            class_score = []
-            class_avg = []
 
             # create a list by extracting text from each <span> tab
             for i in range(len(score)):
@@ -233,7 +230,6 @@ def averages():
             dict_class = {'Class Name': class_name, 'Class Average': class_avg}
             session['class names'] = class_name
             session['class averages'] = class_avg
-            return jsonify(dict_class)
 
         # else, if report run is already there then get it
         else:
@@ -243,21 +239,35 @@ def averages():
             # sets the dictionary for the form
             payload = {
                 "__EVENTTARGET": "ctl00$plnMain$btnRefreshView",
-                "__VIEWSTATE": "e69pCkQ6DDWYmckQvmZnCqnTB+JjussjBFdovwrP05kwZMeDfEf0rPfS0Yar2"
-                               "+Fb21UnPAscpf5MsGZqUylxwFWZr8p+uuKGEwUmYRI2Q64mgzEuD5/vnu8pfOSl"
-                               "+GMF4RkpkUAQzS2guNSeD3HDk69BfiY"
-                               "+KmeEu9gf6a9eCy4TMEtpwHW8is21rgB7yZBuFvVzOxWgH1v7wSf1MHH3U01qeDQiondHF/TctIGAnVcJFwP"
-                               "+uTUtC/LZUfI269H1RHrx4l0AOBVa6AgQdb8CYC1DelOsApEDpga8uTX0gGpEqfsUyLVzEC4"
-                               "/cud7gMBVQ3Uc000aMHqS3V1yg7al20rkL"
-                               "+rUyDJpszeJ5Sts26TOPeJDubniO6Ykkmbx0jIJbH1iR777JRwnMj4Xt0XgQ5/MCnIoAQToQqoc"
-                               "/0CUjOset7jIEzURKkpYA59AJHr4Y/ZBHBGTf4W4n93mSS+YP5Vo7VD1B1dVEIbgEVz9G8MEh"
-                               "+eVkCDxwdPK5JzggmbzvxY7D1cfgTyKmGBVBiVNzmgOVjrYF4a0NDubfs+9xloZwa+nakwWy"
-                               "+aDOaTTdPO71bz/oZp4OOrAsI4ODj/NfltgwZLma1PyR0K32ap+uirb8jORcRnXX+7XrOEF7"
-                               "/0L5nPL6CfUnwFQFW3Fk8x4HIWBaempULPYG9qCQrXepsm5xg7sRbXesB8bcI6VWDlbMcXqEDFyksuhxvQCfpvF1FRIjWEDCPOg5DfZQkNsCg5ZKT8z0VEjuBeCafg/gaIxtgrcmjPx6+HeW103A3gBjXPK+I3G7pJIE6qnf2YOq26E0wLVXD4Ic3Z/tOZ/ZBCGbAE0NsvbfH8aHgs19lQ0qJ5uy513iLseed1rZYEByxdqiJkbj8WCRZEIFh92FiUvUexuc1PcDySQ61V+gGU58CAffPTwulV3RshoiYF7sC3NRpycV1GWdJg0bQhKHzDowWe/J84oc0cWnsfDEkcWor4hkK6rvHM/qOEMInigoeoiR3+bAUFPwqTuEN6NtGR5Emzz1pbkDN3c99DYjFMR9QtbdCrKsjH9QOWD2SBxsZH3yjlM05FCsm0XohpNtGmJp+OdwC2CeiPMNXZOi2ozPqjhHwj3eWJAwwtyyuHHhboXvbOFmgjuaC4L+kAkJNLnLcrtdPu6+fQKtYTlUW2IF462vvLu+QeJk9KCvbjiXwmeDwKKFZdBGGOSWGckzcnqjGO6Q48m4qkaNGDtaHS8DMY+AV6DgRDVIzaQDIN52OkIafozR/5HANXZxJOWXaLwDfPQKk3/irwMdAQQvw1MIX4afmcdhl7/V6d9ozh0PU9ZbM91FmB7amLBUUDaHBpjdinTe+yDbtHCwQtQrg8r5u/qkRexoRFjgn4cnNzjs2QKY2GZY85pTO7cLkHE3Y3CNidHIHsq7+nchNNHu6/h//QggyjiSyEYaTRCELKHQf9kbXYp4l9aj6w5YvHu4cUVtCGb06So9WNJySV5M7ulm/U2/KOJb+wbvBRE1T2nhH8ibENK6caF+5kaq9Oshnwr4QpGt0WTf85ZbmJpL0/rBb+NQsSTuCXj7q8y635Ba+hTR66ovJa45q9CMoK5Lo0L3/ZnM8qdvECzmxy59U+hiki3aoq3zXhGyMdH85xzamj4tTIcQUcIOq6XOA69crIeFoc0kHnRbQ1oLyUtuqelS/a/Ch8WE5psGR1DDMsjna64vKWS7JEkm33tJ8Kdy+lRqA24Z8i7DnT1OvOnfOiQGZPl67RpxZfmdc4pzvP/le3TAOqpgagaRBxOtyZcIKZY6uLN6pDFJimrMXcfeOM9inzVbCGKmqZN2PQazrN9ZjQ=",
+                "__VIEWSTATE": "e69pCkQ6DDWYmckQvmZnCqnTB+JjussjBFdovwrP05kwZMeDfEf0rPfS0Yar2+Fb21UnPAscpf5MsGZqUylxwFWZr8p+uuKGEwUmYRI2Q64mgzEuD5/vnu8pfOSl"
+                               "+GMF4RkpkUAQzS2guNSeD3HDk69BfiY+KmeEu9gf6a9eCy4TMEtpwHW8is21rgB7yZBuFvVzOxWgH1v7wSf1MHH3U01qeDQiondHF/TctIGAnVcJFwP"
+                               "+uTUtC/LZUfI269H1RHrx4l0AOBVa6AgQdb8CYC1DelOsApEDpga8uTX0gGpEqfsUyLVzEC4/cud7gMBVQ3Uc000aMHqS3V1yg7al20rkL+rUyDJpszeJ5S"
+                               "ts26TOPeJDubniO6Ykkmbx0jIJbH1iR777JRwnMj4Xt0XgQ5/MCnIoAQToQqoc/0CUjOset7jIEzURKkpYA59AJHr4Y/ZBHBGTf4W4n93mSS+YP5Vo7VD1B1dVEIbgEVz9G8MEh"
+                               "+eVkCDxwdPK5JzggmbzvxY7D1cfgTyKmGBVBiVNzmgOVjrYF4a0NDubfs+9xloZwa+nakwWy+aDOaTTdPO71bz/oZp4OOrAsI4ODj/NfltgwZLma1PyR0K32ap+"
+                               "uirb8jORcRnXX+7XrOEF7/0L5nPL6CfUnwFQFW3Fk8x4HIWBaempULPYG9qCQrXepsm5xg7sRbXesB8bcI6VWDlbMcXqEDFyksuhxvQCfpvF1FRIjWEDCPOg5DfZQkNsC"
+                               "g5ZKT8z0VEjuBeCafg/gaIxtgrcmjPx6+HeW103A3gBjXPK+I3G7pJIE6qnf2YOq26E0wLVXD4Ic3Z/tOZ/ZBCGbAE0NsvbfH8aHgs19lQ0qJ5uy513iLseed1rZYEByxdqiJ"
+                               "kbj8WCRZEIFh92FiUvUexuc1PcDySQ61V+gGU58CAffPTwulV3RshoiYF7sC3NRpycV1GWdJg0bQhKHzDowWe/J84oc0cWnsfDEkcWor4hkK6rvHM/qOEMInigoeoiR3+bAU"
+                               "FPwqTuEN6NtGR5Emzz1pbkDN3c99DYjFMR9QtbdCrKsjH9QOWD2SBxsZH3yjlM05FCsm0XohpNtGmJp+OdwC2CeiPMNXZOi2ozPqjhHwj3eWJAwwtyyuHHhboXvbOFmgjuaC4L"
+                               "+kAkJNLnLcrtdPu6+fQKtYTlUW2IF462vvLu+QeJk9KCvbjiXwmeDwKKFZdBGGOSWGckzcnqjGO6Q48m4qkaNGDtaHS8DMY+AV6DgRDVIzaQDIN52OkIafozR/5HANX"
+                               "ZxJOWXaLwDfPQKk3/irwMdAQQvw1MIX4afmcdhl7/V6d9ozh0PU9ZbM91FmB7amLBUUDaHBpjdinTe+yDbtHCwQtQrg8r5u/qkRexoRFjgn4cnNzjs2QKY2GZY85pTO7cLkHE"
+                               "3Y3CNidHIHsq7+nchNNHu6/h//QggyjiSyEYaTRCELKHQf9kbXYp4l9aj6w5YvHu4cUVtCGb06So9WNJySV5M7ulm/U2/KOJb+wbvBRE1T2nhH8ibENK6caF+5kaq9Oshnwr"
+                               "4QpGt0WTf85ZbmJpL0/rBb+NQsSTuCXj7q8y635Ba+hTR66ovJa45q9CMoK5Lo0L3/ZnM8qdvECzmxy59U+hiki3aoq3zXhGyMdH85xzamj4tTIcQUcIOq6XOA69crIeFoc0k"
+                               "HnRbQ1oLyUtuqelS/a/Ch8WE5psGR1DDMsjna64vKWS7JEkm33tJ8Kdy+lRqA24Z8i7DnT1OvOnfOiQGZPl67RpxZfmdc4pzvP/le3TAOqpgagaRBxOtyZcIKZY6uLN6pDFJimr"
+                               "MXcfeOM9inzVbCGKmqZN2PQazrN9ZjQ=",
                 "__VIEWSTATEGENERATOR": "B0093F3C",
-                "__EVENTVALIDATION": "bELah0Vt48qlV7YUIDZbmPQIQhg66EDLI4Zkw79rKB6Kf"
-                                     "/iK7EzHNwWYUFSwnSY4k2trIkNKWuRkNo3UtWd7C6Z9"
-                                     "/U9KNZviyLtV4cHtyoZtGJNtATfSXw0y3cdFJMmoKzmWFhsMvYkrPE9k786yK4QgLHOoMZhRKGQHNPiLS4iehScdP3vTe9138mFtDv84Z7Ppy46Kl48g47Nc7oZksB6OJ4RlQEQCbkA23e0RyRoklXhPfDBIBLzsefW3n+pMl4vEiHT43stnPfzfZ9Maxf7lQlu+rkexqOFJksrL1VR5l7G2Kp5Dv8sAKJuEHTWoisXI3uv6CTnweH7UCMz2bUv/qyMiATAElJCMxXZrGDPv5yDkijxjRhrsm6Fvu7VNxBCaIVr2KT4l6NQmzQI5LUOGJ1R1+3hsTL7WuAryzD01A+VEv+4P1rIosX8c8G5L5/i88gKm2JKct2tAC0NbzYSAbcaOKyJZ7ehWQRk9GlLwGTIGhB6YgLuP+BAIbS+KxhG+H68syqseLpdSZ9mXD2/tuBSHN6Ijlno3+fpoKZMXDFgr5kgzmpA6eTYmClBRwULTlQgdJ+cSV8GaiwDZCfxD6BYgTicFitSW93Yj37JpCO/KY2zyPGrBc+Mk/vEUn151BhCRmOn8X/sZbm6DFrFj17LwAya2Wt05b7FBW4dx0GkkyQE52ZZIQYSEnaL9yJoeeH4kHZhNT6qNh8YCsEYQzZ4zYfs2iyCJJNXUbBo/gz7Rmcg4D7pXadI6q/XhcMgRMOVf2XliL+ZeFJM/RP0C+YmfwuwC0quej/yaqTJ+SqS3cg8AYoyZFaanEpk8Fn8nSrkoKnZ65jT7bLu/uMgne9gOOK8Us142aNjGXtOGXLw/PIawyb/mfuzNDxvtSNYJL0TEQ19r2xXgh4hyXBN0WoFxhRyWo7D2pNvpEm912TRcXDGHvaPq4EtAr8Vi0X5TUUj8BI7OfNeOeyu2KW/Vj2OL68AhWGNWYAM8nww2zvo0jNRhXFKhIxowB87qFJ+Ung9D+crKR276nmBBaLMfpPkjpTDcLBOC9VeWAHC79oPZ4AE6GgDjXhbI+vXGsCgU5H6IvwWpEjfeaEZLMGKLThy37ycURE8PUCGWWiEeyakViztT5lhAvwdjsd4ia3d1OioIF5Hv8n7ftLNZkt26YivuumzqG/Pm6EFz2u/dbITddni9rrr7M2pjIZ299Z+mUVJzXrWTWyzhKIekBObNAWCmOdkCGOh11XcnoubbogTbtcP5yF6VCCbBIShhB4L+V9D43a+EAvp2WU6NNsX7CcCMu/g6RLIR14cY636au7+XtCC0kLKtj9vRJcIMn6kwqW9tyt7QLp2jY0VSriszwboEGVGSDvyB+Xn3GLR/7Gx8KOBpK6NVQBTmpoAOrKjmd7FWrZzXoASv+lxuDuWBXThWoX+K9Wn0nCOL5as8J5z72P+vHbkIDiZTHVbumkAqJews76rEukB4skvln8hmHJDCqMZRAWgA2aBpFk10g8cV2V/Enom1XaT0deglfJjaX1kwYSsEfHmpsa8mMKubQVobSf36GVI9NOX/CychnQzVqaAkwD9nGO5rLHLrQHKA66IHbo7pasGzxGBYBYBGIDXtUhGmDMUJB1W2pdk=",
+                "__EVENTVALIDATION": "bELah0Vt48qlV7YUIDZbmPQIQhg66EDLI4Zkw79rKB6Kf/iK7EzHNwWYUFSwnSY4k2trIkNKWuRkNo3UtWd7C6Z9/U9KNZviyLtV4cHtyoZtGJNtATfSXw0y3cdFJMmoK"
+                                     "zmWFhsMvYkrPE9k786yK4QgLHOoMZhRKGQHNPiLS4iehScdP3vTe9138mFtDv84Z7Ppy46Kl48g47Nc7oZksB6OJ4RlQEQCbkA23e0RyRoklXhPfDBIBLzsefW3n+pMl"
+                                     "4vEiHT43stnPfzfZ9Maxf7lQlu+rkexqOFJksrL1VR5l7G2Kp5Dv8sAKJuEHTWoisXI3uv6CTnweH7UCMz2bUv/qyMiATAElJCMxXZrGDPv5yDkijxjRhrsm6Fvu7VNxBC"
+                                     "aIVr2KT4l6NQmzQI5LUOGJ1R1+3hsTL7WuAryzD01A+VEv+4P1rIosX8c8G5L5/i88gKm2JKct2tAC0NbzYSAbcaOKyJZ7ehWQRk9GlLwGTIGhB6YgLuP+BAIbS+KxhG+H68s"
+                                     "yqseLpdSZ9mXD2/tuBSHN6Ijlno3+fpoKZMXDFgr5kgzmpA6eTYmClBRwULTlQgdJ+cSV8GaiwDZCfxD6BYgTicFitSW93Yj37JpCO/KY2zyPGrBc+Mk/vEUn151BhCRm"
+                                     "On8X/sZbm6DFrFj17LwAya2Wt05b7FBW4dx0GkkyQE52ZZIQYSEnaL9yJoeeH4kHZhNT6qNh8YCsEYQzZ4zYfs2iyCJJNXUbBo/gz7Rmcg4D7pXadI6q/XhcMgRMOVf2XliL+ZeF"
+                                     "JM/RP0C+YmfwuwC0quej/yaqTJ+SqS3cg8AYoyZFaanEpk8Fn8nSrkoKnZ65jT7bLu/uMgne9gOOK8Us142aNjGXtOGXLw/PIawyb/mfuzNDxvtSNYJL0TEQ19r2xXgh4hyX"
+                                     "BN0WoFxhRyWo7D2pNvpEm912TRcXDGHvaPq4EtAr8Vi0X5TUUj8BI7OfNeOeyu2KW/Vj2OL68AhWGNWYAM8nww2zvo0jNRhXFKhIxowB87qFJ+Ung9D+crKR276nmBBaLMfpPkj"
+                                     "pTDcLBOC9VeWAHC79oPZ4AE6GgDjXhbI+vXGsCgU5H6IvwWpEjfeaEZLMGKLThy37ycURE8PUCGWWiEeyakViztT5lhAvwdjsd4ia3d1OioIF5Hv8n7ftLNZkt26YivuumzqG/"
+                                     "Pm6EFz2u/dbITddni9rrr7M2pjIZ299Z+mUVJzXrWTWyzhKIekBObNAWCmOdkCGOh11XcnoubbogTbtcP5yF6VCCbBIShhB4L+V9D43a+EAvp2WU6NNsX7CcCMu/g6RLIR14cY6"
+                                     "36au7+XtCC0kLKtj9vRJcIMn6kwqW9tyt7QLp2jY0VSriszwboEGVGSDvyB+Xn3GLR/7Gx8KOBpK6NVQBTmpoAOrKjmd7FWrZzXoASv+lxuDuWBXThWoX+K9Wn0nCOL5as8J5z"
+                                     "72P+vHbkIDiZTHVbumkAqJews76rEukB4skvln8hmHJDCqMZRAWgA2aBpFk10g8cV2V/Enom1XaT0deglfJjaX1kwYSsEfHmpsa8mMKubQVobSf36GVI9NOX/CychnQzVqaAkwD"
+                                     "9nGO5rLHLrQHKA66IHbo7pasGzxGBYBYBGIDXtUhGmDMUJB1W2pdk=",
                 "ctl00$plnMain$ddlReportCardRuns": report_run + "-2020"
             }
 
@@ -266,18 +276,25 @@ def averages():
             classes_text = r_classes.content
             soup = BeautifulSoup(classes_text, "lxml")
 
+            # sets the session to true
+            session['server_status'] = True
+
+            # if nosvr is False
+            if session['nosvr']:
+                return jsonify({"status": "error", "msg": "fisd server down"}), 404
+
             # finds all <a> tabs in the class specified
             a = soup.find_all("a", {"class": "sg-header-heading"})
 
             # get and set class names
             class_name = []
+            class_score = []
+            class_avg = []
             for i in range(len(a)):
                 class_name.append(" ".join((a[i].text.rstrip().split())[3:]))
 
             # find <span> tab in specified class
             score = soup.find_all("span", {"class": "sg-header-heading sg-right"})
-            class_score = []
-            class_avg = []
 
             # create a list by extracting text from each <span> tab
             for i in range(len(score)):
@@ -294,288 +311,216 @@ def averages():
             dict_class = {'Class Name': class_name, 'Class Average': class_avg}
             session['class names'] = class_name
             session['class averages'] = class_avg
-            return jsonify(dict_class)
-    except (AttributeError, KeyError, TypeError):
-        if x == y:
-            session['check'] = 'used'
-            return redirect(url_for("averages"))
-        else:
-            session['check'] = 'unused'
-            return jsonify({"status": "error", "msg": "unable to receive info, please retry"})
 
+        class_divs = soup.find_all('div', {'class': 'AssignmentClass'})
 
-# defines the app route for assignments
-@app.route('/assignments')
-# function in order to get assignments
-def assignments():
-    # define variables for try and except
-    x = session.get('check')
-    y = session.get('expo')
-    try:
-        # grade url site
-        grade_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/Assignments.aspx"
-
-        # creates a soup object with specified info
-        classes = session_hac.get(grade_site, cookies=session['hac cookies'], headers=headers)
-        classes_text = classes.content
-        soup = BeautifulSoup(classes_text, "lxml")
-
-        # create arrays for the specified data
-        assignment = []
-        category = []
-        due_date = []
-        score = []
-        weight = []
-        weighted_score = []
-        weighted_total_points = []
-        percentage = []
+        class_count = 0
+        main_class_list = []
         count_class_list = []
+        for _class in class_divs:
+            class_count += 1
+            class_div = _class.find('div', {'class': 'sg-content-grid'})
+            class_string = str(class_div)
+            if ("sg-asp-table" in class_string) and ("sg-asp-table-data-row" in class_string):
+                table = class_div.find("table", {"class": "sg-asp-table"})
+                tr = table.find_all("tr", {"class": "sg-asp-table-data-row"})
+                count = 0
 
-        # find all tables in url for extraction
-        tables = soup.find_all("table")
+                # create arrays for the specified data
+                assignment = []
+                category = []
+                due_date = []
+                score = []
+                weight = []
+                weighted_score = []
+                weighted_total_points = []
+                percentage = []
 
-        # find every third <tr> tab
-        for i in range(0, len(tables), 3):
-            tr = tables[i].find_all("tr", {"class": "sg-asp-table-data-row"})
+                # run through the loop to find all the tr tabs
+                for j in range(len(tr)):
+                    td = (tr[j]).find_all("td")
 
-            # in each <tr> tab find the length and the <td> tabs
-            count = 0
-            for j in range(len(tr)):
-                td = (tr[j]).find_all("td")
+                    # for each <td> tab, get the text and assign it to the specific list
+                    # if the string is blank then assign it value of None
+                    for k in range(len(td)):
+                        string = td[k].text
+                        if string == '\xa0':
+                            string = ''
+                        elif string == '':
+                            string = ''
+                        if k == 0:
+                            due_date.append(string)
+                        elif k == 2:
+                            assignment.append((string.split("\r\n")[1]).strip())
+                        elif k == 3:
+                            category.append(string)
+                        elif k == 4:
+                            score.append(string.strip())
+                        elif k == 6:
+                            weight.append(string)
+                        elif k == 7:
+                            weighted_score.append(string)
+                        elif k == 8:
+                            weighted_total_points.append(string)
+                        elif k == 9:
+                            percentage.append(string)
+                    count += 1
+                main_class_list.append(
+                    [class_count, assignment, category, due_date, score, weight, weighted_score, weighted_total_points,
+                     percentage])
+                count_class_list.append(count)
+            else:
+                main_class_list.append([class_count, [], [], [], [], [], [], [], []])
+                count_class_list.append(0)
 
-                # for each <td> tab, get the text and assign it to the specific list
-                # if the string is blank then assign it value of None
-                for k in range(len(td)):
-                    string = td[k].text
-                    if string == '\xa0':
-                        string = ''
-                    elif string == '':
-                        string = ''
-                    if k == 0:
-                        due_date.append(string)
-                    elif k == 2:
-                        assignment.append((string.split("\r\n")[1]).strip())
-                    elif k == 3:
-                        category.append(string)
-                    elif k == 4:
-                        score.append(string.strip())
-                    elif k == 6:
-                        weight.append(string)
-                    elif k == 7:
-                        weighted_score.append(string)
-                    elif k == 8:
-                        weighted_total_points.append(string)
-                    elif k == 9:
-                        percentage.append(string)
-                count += 1
-            count_class_list.append(count)
+        main_class_dict = {}
 
-        # set 0's for the count of assignments if there is no score in class_avg
-        # returns the number of total assignments in each class
-        class_avg = session.get('class averages')
-        for index in range(len(class_avg)):
-            if class_avg[index] == "":
-                count_class_list.insert(index, 0)
-        count_assignments = count_class_list
-        session['current'] = count_assignments
-
-        # perform function for number of assignments in each class
-        def func_count_sum(len_tot):
-            sum_total = 0
-            for i in range(len_tot):
-                sum_total += count_assignments[i]
-            return sum_total
-
-        # declaring the grades for each class
-        # class_1
-        class_1_assignments = assignment[0:func_count_sum(1)]
-        class_1_category = category[0:func_count_sum(1)]
-        class_1_due_date = due_date[0:func_count_sum(1)]
-        class_1_score = score[0:func_count_sum(1)]
-        class_1_weight = weight[0:func_count_sum(1)]
-        class_1_weighted_score = weighted_score[0:func_count_sum(1)]
-        class_1_weighted_total_points = weighted_total_points[0:func_count_sum(1)]
-        class_1_percentage = percentage[0:func_count_sum(1)]
-        session['1 assignments'] = class_1_assignments
-        session['1 score'] = class_1_score
-
-        # class_2
-        class_2_assignments = assignment[func_count_sum(1):func_count_sum(2)]
-        class_2_category = category[func_count_sum(1):func_count_sum(2)]
-        class_2_due_date = due_date[func_count_sum(1):func_count_sum(2)]
-        class_2_score = score[func_count_sum(1):func_count_sum(2)]
-        class_2_weight = weight[func_count_sum(1):func_count_sum(2)]
-        class_2_weighted_score = weighted_score[func_count_sum(1):func_count_sum(2)]
-        class_2_weighted_total_points = weighted_total_points[func_count_sum(1):func_count_sum(2)]
-        class_2_percentage = percentage[func_count_sum(1):func_count_sum(2)]
-        session['2 assignments'] = class_2_assignments
-        session['2 score'] = class_2_score
-
-        # class_3
-        class_3_assignments = assignment[func_count_sum(2):func_count_sum(3)]
-        class_3_category = category[func_count_sum(2):func_count_sum(3)]
-        class_3_due_date = due_date[func_count_sum(2):func_count_sum(3)]
-        class_3_score = score[func_count_sum(2):func_count_sum(3)]
-        class_3_weight = weight[func_count_sum(2):func_count_sum(3)]
-        class_3_weighted_score = weighted_score[func_count_sum(2):func_count_sum(3)]
-        class_3_weighted_total_points = weighted_total_points[func_count_sum(2):func_count_sum(3)]
-        class_3_percentage = percentage[func_count_sum(2):func_count_sum(3)]
-        session['3 assignments'] = class_3_assignments
-        session['3 score'] = class_3_score
-
-        # class_4
-        class_4_assignments = assignment[func_count_sum(3):func_count_sum(4)]
-        class_4_category = category[func_count_sum(3):func_count_sum(4)]
-        class_4_due_date = due_date[func_count_sum(3):func_count_sum(4)]
-        class_4_score = score[func_count_sum(3):func_count_sum(4)]
-        class_4_weight = weight[func_count_sum(3):func_count_sum(4)]
-        class_4_weighted_score = weighted_score[func_count_sum(3):func_count_sum(4)]
-        class_4_weighted_total_points = weighted_total_points[func_count_sum(3):func_count_sum(4)]
-        class_4_percentage = percentage[func_count_sum(3):func_count_sum(4)]
-        session['4 assignments'] = class_4_assignments
-        session['4 score'] = class_4_score
-
-        # class_5
-        class_5_assignments = assignment[func_count_sum(4):func_count_sum(5)]
-        class_5_category = category[func_count_sum(4):func_count_sum(5)]
-        class_5_due_date = due_date[func_count_sum(4):func_count_sum(5)]
-        class_5_score = score[func_count_sum(4):func_count_sum(5)]
-        class_5_weight = weight[func_count_sum(4):func_count_sum(5)]
-        class_5_weighted_score = weighted_score[func_count_sum(4):func_count_sum(5)]
-        class_5_weighted_total_points = weighted_total_points[func_count_sum(4):func_count_sum(5)]
-        class_5_percentage = percentage[func_count_sum(4):func_count_sum(5)]
-        session['5 assignments'] = class_5_assignments
-        session['5 score'] = class_5_score
-
-        # class_6
-        class_6_assignments = assignment[func_count_sum(5):func_count_sum(6)]
-        class_6_category = category[func_count_sum(5):func_count_sum(6)]
-        class_6_due_date = due_date[func_count_sum(5):func_count_sum(6)]
-        class_6_score = score[func_count_sum(5):func_count_sum(6)]
-        class_6_weight = weight[func_count_sum(5):func_count_sum(6)]
-        class_6_weighted_score = weighted_score[func_count_sum(5):func_count_sum(6)]
-        class_6_weighted_total_points = weighted_total_points[func_count_sum(5):func_count_sum(6)]
-        class_6_percentage = percentage[func_count_sum(5):func_count_sum(6)]
-        session['6 assignments'] = class_6_assignments
-        session['6 score'] = class_6_score
-
-        # class_7
-        class_7_assignments = assignment[func_count_sum(6):func_count_sum(7)]
-        class_7_category = category[func_count_sum(6):func_count_sum(7)]
-        class_7_due_date = due_date[func_count_sum(6):func_count_sum(7)]
-        class_7_score = score[func_count_sum(6):func_count_sum(7)]
-        class_7_weight = weight[func_count_sum(6):func_count_sum(7)]
-        class_7_weighted_score = weighted_score[func_count_sum(6):func_count_sum(7)]
-        class_7_weighted_total_points = weighted_total_points[func_count_sum(6):func_count_sum(7)]
-        class_7_percentage = percentage[func_count_sum(6):func_count_sum(7)]
-        session['7 assignments'] = class_7_assignments
-        session['7 score'] = class_7_score
-
-        # class_8
-        class_8_assignments = assignment[func_count_sum(7):len(assignment)]
-        class_8_category = category[func_count_sum(7):len(assignment)]
-        class_8_due_date = due_date[func_count_sum(7):len(assignment)]
-        class_8_score = score[func_count_sum(7):len(assignment)]
-        class_8_weight = weight[func_count_sum(7):len(assignment)]
-        class_8_weighted_score = weighted_score[func_count_sum(7):len(assignment)]
-        class_8_weighted_total_points = weighted_total_points[func_count_sum(7):len(assignment)]
-        class_8_percentage = percentage[func_count_sum(7):len(assignment)]
-        session['8 assignments'] = class_8_assignments
-        session['8 score'] = class_8_score
+        for class_list in range(len(main_class_list)):
+            key_word = "Class " + str(main_class_list[class_list][0])
+            main_class_dict.update({key_word:
+                                        {"Assignments": main_class_list[class_list][1],
+                                         "Category": main_class_list[class_list][2],
+                                         "Due Date": main_class_list[class_list][3],
+                                         "Score": main_class_list[class_list][4],
+                                         "Weight": main_class_list[class_list][5],
+                                         "Weighted Score": main_class_list[class_list][6],
+                                         "Weighted Total Points": main_class_list[class_list][7],
+                                         "Percentage": main_class_list[class_list][8]}})
 
         # create an overall dictionary for all values
-        dict_main_assignments = {"Class 1":
-                                     {"Assignments": class_1_assignments,
-                                      "Category": class_1_category,
-                                      "Due Date": class_1_due_date,
-                                      "Score": class_1_score,
-                                      "Weight": class_1_weight,
-                                      "Weighted Score": class_1_weighted_score,
-                                      "Weighted Total Points": class_1_weighted_total_points,
-                                      "Percentage": class_1_percentage},
-                                 "Class 2":
-                                     {"Assignments": class_2_assignments,
-                                      "Category": class_2_category,
-                                      "Due Date": class_2_due_date,
-                                      "Score": class_2_score,
-                                      "Weight": class_2_weight,
-                                      "Weighted Score": class_2_weighted_score,
-                                      "Weighted Total Points": class_2_weighted_total_points,
-                                      "Percentage": class_2_percentage},
-                                 "Class 3":
-                                     {"Assignments": class_3_assignments,
-                                      "Category": class_3_category,
-                                      "Due Date": class_3_due_date,
-                                      "Score": class_3_score,
-                                      "Weight": class_3_weight,
-                                      "Weighted Score": class_3_weighted_score,
-                                      "Weighted Total Points": class_3_weighted_total_points,
-                                      "Percentage": class_3_percentage},
-                                 "Class 4":
-                                     {"Assignments": class_4_assignments,
-                                      "Category": class_4_category,
-                                      "Due Date": class_4_due_date,
-                                      "Score": class_4_score,
-                                      "Weight": class_4_weight,
-                                      "Weighted Score": class_4_weighted_score,
-                                      "Weighted Total Points": class_4_weighted_total_points,
-                                      "Percentage": class_4_percentage},
-                                 "Class 5":
-                                     {"Assignments": class_5_assignments,
-                                      "Category": class_5_category,
-                                      "Due Date": class_5_due_date,
-                                      "Score": class_5_score,
-                                      "Weight": class_5_weight,
-                                      "Weighted Score": class_5_weighted_score,
-                                      "Weighted Total Points": class_5_weighted_total_points,
-                                      "Percentage": class_5_percentage},
-                                 "Class 6":
-                                     {"Assignments": class_6_assignments,
-                                      "Category": class_6_category,
-                                      "Due Date": class_6_due_date,
-                                      "Score": class_6_score,
-                                      "Weight": class_6_weight,
-                                      "Weighted Score": class_6_weighted_score,
-                                      "Weighted Total Points": class_6_weighted_total_points,
-                                      "Percentage": class_6_percentage},
-                                 "Class 7":
-                                     {"Assignments": class_7_assignments,
-                                      "Category": class_7_category,
-                                      "Due Date": class_7_due_date,
-                                      "Score": class_7_score,
-                                      "Weight": class_7_weight,
-                                      "Weighted Score": class_7_weighted_score,
-                                      "Weighted Total Points": class_7_weighted_total_points,
-                                      "Percentage": class_7_percentage},
-                                 "Class 8":
-                                     {"Assignments": class_8_assignments,
-                                      "Category": class_8_category,
-                                      "Due Date": class_8_due_date,
-                                      "Score": class_8_score,
-                                      "Weight": class_8_weight,
-                                      "Weighted Score": class_8_weighted_score,
-                                      "Weighted Total Points": class_8_weighted_total_points,
-                                      "Percentage": class_8_percentage},
-                                 }
+        dict_main_assignments = {"Report Run": session['report run'], "Info": session['student info'],
+                                 "Averages": dict_class, "Grades": main_class_dict}
 
         # return the json object mentioned
         return jsonify(dict_main_assignments)
-    except (AttributeError, KeyError, TypeError):
-        if x == y:
-            session['check'] = 'used'
-            return redirect(url_for("assignments"))
-        else:
-            session['check'] = 'unused'
-            return jsonify({"status": "error", "msg": "unable to receive info, please retry"})
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
 
+
+# # defines the app route for new assignments
+# @app.route('/new')
+# # function in order to get new assignments
+# def new():
+#     # recall the name_student dict
+#     name_student = session['student name']
+#
+#     # Reopen the data stored for old assignments
+#     d = shelve.open('new_assignments.db')
+#     if name_student + " num_assignments" in d:
+#         data = d[name_student + " num_assignments"]
+#         saved_assignments_list = data
+#         session['previous'] = saved_assignments_list
+#     else:
+#         d[name_student + " num_assignments"] = [0, 0, 0, 0, 0, 0, 0, 0]
+#         saved_assignments_list = d[name_student + " num_assignments"]
+#         session['previous'] = saved_assignments_list
+#     d.close()
+#
+#     # define all session values
+#     count_assignments = session['current']
+#     saved_assignments_list = session['previous']
+#     class_name = session['class names']
+#     class_1_assignments = session['1 assignments']
+#     class_1_score = session['1 score']
+#     class_2_assignments = session['2 assignments']
+#     class_2_score = session['2 score']
+#     class_3_assignments = session['3 assignments']
+#     class_3_score = session['3 score']
+#     class_4_assignments = session['4 assignments']
+#     class_4_score = session['4 score']
+#     class_5_assignments = session['5 assignments']
+#     class_5_score = session['5 score']
+#     class_6_assignments = session['6 assignments']
+#     class_6_score = session['6 score']
+#     class_7_assignments = session['7 assignments']
+#     class_7_score = session['7 score']
+#     class_8_assignments = session['8 assignments']
+#     class_8_score = session['8 score']
+#
+#     # store the list into the saved_assignments_list variable name and then close the file
+#     data = count_assignments
+#     d = shelve.open('new_assignments.db')
+#     d[name_student + " num_assignments"] = data
+#     d.close()
+#
+#     # find the difference between the previous list and the current one
+#     difference = []
+#     for i in range(len(count_assignments)):
+#         if count_assignments[i] != saved_assignments_list[i]:
+#             int_val = int(count_assignments[i] - saved_assignments_list[i])
+#             if int_val > 0:
+#                 difference.append(int_val)
+#             else:
+#                 difference.append(0)
+#         else:
+#             difference.append(0)
+#
+#     # create new dictionary for json display
+#     new_grades_dict = {}
+#
+#     # new assignments and grades for them in class_1
+#     new_1_assignments = class_1_assignments[:difference[0]]
+#     new_1_score = class_1_score[:difference[0]]
+#     if difference[0] != 0:
+#         new_grades_dict.update({class_name[0]: [{"Assignments": new_1_assignments[x], "Grades": new_1_score[x]} for
+#                                                 x in range(len(new_1_assignments))]})
+#
+#     # new assignments and grades for them in class_2
+#     new_2_assignments = class_2_assignments[:difference[1]]
+#     new_2_score = class_2_score[:difference[1]]
+#     if difference[1] != 0:
+#         new_grades_dict.update({class_name[1]: [{"Assignments": new_2_assignments[x], "Grades": new_2_score[x]} for
+#                                                 x in range(len(new_2_assignments))]})
+#
+#     # new assignments and grades for them in class_3
+#     new_3_assignments = class_3_assignments[:difference[2]]
+#     new_3_score = class_3_score[:difference[2]]
+#     if difference[2] != 0:
+#         new_grades_dict.update({class_name[2]: [{"Assignments": new_3_assignments[x], "Grades": new_3_score[x]} for
+#                                                 x in range(len(new_3_assignments))]})
+#
+#     # new assignments and grades for them in class_4
+#     new_4_assignments = class_4_assignments[:difference[3]]
+#     new_4_score = class_4_score[:difference[3]]
+#     if difference[3] != 0:
+#         new_grades_dict.update({class_name[3]: [{"Assignments": new_4_assignments[x], "Grades": new_4_score[x]} for
+#                                                 x in range(len(new_4_assignments))]})
+#
+#     # new assignments and grades for them in class_5
+#     new_5_assignments = class_5_assignments[:difference[4]]
+#     new_5_score = class_5_score[:difference[4]]
+#     if difference[4] != 0:
+#         new_grades_dict.update({class_name[4]: [{"Assignments": new_5_assignments[x], "Grades": new_5_score[x]} for
+#                                                 x in range(len(new_5_assignments))]})
+#
+#     # new assignments and grades for them in class_6
+#     new_6_assignments = class_6_assignments[:difference[5]]
+#     new_6_score = class_6_score[:difference[5]]
+#     if difference[5] != 0:
+#         new_grades_dict.update({class_name[5]: [{"Assignments": new_6_assignments[x], "Grades": new_6_score[x]} for
+#                                                 x in range(len(new_6_assignments))]})
+#
+#     # new assignments and grades for them in class_7
+#     new_7_assignments = class_7_assignments[:difference[6]]
+#     new_7_score = class_7_score[:difference[6]]
+#     if difference[6] != 0:
+#         new_grades_dict.update({class_name[6]: [{"Assignments": new_7_assignments[x], "Grades": new_7_score[x]} for
+#                                                 x in range(len(new_7_assignments))]})
+#
+#     # new assignments and grades for them in class_8
+#     new_8_assignments = class_8_assignments[:difference[7]]
+#     new_8_score = class_8_score[:difference[7]]
+#     if difference[7] != 0:
+#         new_grades_dict.update({class_name[7]: [{"Assignments": new_8_assignments[x], "Grades": new_8_score[x]} for
+#                                                 x in range(len(new_8_assignments))]})
+#
+#     # return the json value of this dict
+#     return jsonify({"Run " + session['report run']: new_grades_dict})
 
 # defines the app route for schedule
 @app.route('/schedule')
 # function in order to get schedule
 def schedule():
-    # define variables for try and except
-    x = session.get('check')
-    y = session.get('expo')
     try:
         # get schedule
         schedule_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/Classes.aspx"
@@ -619,32 +564,17 @@ def schedule():
             building.append(td[j].text.strip())
 
         # create a dictionary for the values and return it
-        schedule_dict = {"Course": schedule_course,
-                         "Class": schedule_class,
-                         "Period": periods,
-                         "Teacher": teacher,
-                         "Room": room,
-                         "Days": days,
-                         "Marking Period": marking_period,
-                         "Building": building
-                         }
+        schedule_dict = {"Course": schedule_course, "Class": schedule_class, "Period": periods, "Teacher": teacher,
+                         "Room": room, "Days": days, "Marking Period": marking_period, "Building": building}
         return jsonify(schedule_dict)
-    except (AttributeError, KeyError, TypeError):
-        if x == y:
-            session['check'] = 'used'
-            return redirect(url_for("schedule"))
-        else:
-            session['check'] = 'unused'
-            return jsonify({"status": "error", "msg": "unable to receive info, please retry"})
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
 
 
 # defines the app route for ipr
 @app.route('/ipr')
 # function in order to get ipr
 def ipr():
-    # define variables for try and except
-    x = session.get('check')
-    y = session.get('expo')
     try:
         # gets info from specified site and creates another soup object
         ipr_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/InterimProgress.aspx"
@@ -707,32 +637,17 @@ def ipr():
 
         # create a new dictionary for the ipr run
         ipr_run_dict = {"Run": ipr_run_date,
-                        "Schedule": {
-                            "Course": ipr_course,
-                            "Class": ipr_class,
-                            "Period": period,
-                            "Teacher": teacher,
-                            "Room": room,
-                            "Grade": grade
-                        }
-                        }
+                        "Schedule": {"Course": ipr_course, "Class": ipr_class, "Period": period, "Teacher": teacher,
+                                     "Room": room, "Grade": grade}}
         return jsonify(ipr_run_dict)
-    except (AttributeError, KeyError, TypeError):
-        if x == y:
-            session['check'] = 'used'
-            return redirect(url_for("ipr"))
-        else:
-            session['check'] = 'unused'
-            return jsonify({"status": "error", "msg": "unable to receive info, please retry"})
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
 
 
 # defines the app route for rc
 @app.route('/reportcard')
 # function in order to get rc
 def report_card():
-    # define variables for try and except
-    x = session.get('check')
-    y = session.get('expo')
     try:
         # gets info from specified site and creates another soup object
         rc_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/ReportCards.aspx"
@@ -752,25 +667,18 @@ def report_card():
         header = report.iloc[0]
         report = report[1:]
         report_card = report.rename(columns=header)
+        final_dict = report_card.to_dict()
 
         # return the report card (table) in dictionary format
-        return jsonify(report_card.to_dict())
-    except (AttributeError, KeyError, TypeError):
-        if x == y:
-            session['check'] = 'used'
-            return redirect(url_for("reportcard"))
-        else:
-            session['check'] = 'unused'
-            return jsonify({"status": "error", "msg": "unable to receive info, please retry"})
+        return jsonify(final_dict)
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
 
 
 # defines the app route for gpa
 @app.route('/gpa')
 # function in order to get gpa
 def gpa():
-    # define variables for try and except
-    x = session.get('check')
-    y = session.get('expo')
     try:
         grade_student = session.get('student grade')
         # get transcript if grade is 09 - 12
@@ -796,13 +704,8 @@ def gpa():
         else:
             gpa_dict = {"Weighted GPA": "None", "Unweighted": "None"}
             return jsonify(gpa_dict)
-    except (AttributeError, KeyError, TypeError):
-        if x == y:
-            session['check'] = 'used'
-            return redirect(url_for("gpa"))
-        else:
-            session['check'] = 'unused'
-            return jsonify({"status": "error", "msg": "unable to receive info, please retry"})
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
 
 
 # runs the python flask apps

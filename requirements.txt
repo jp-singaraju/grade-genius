@@ -1,24 +1,33 @@
-Flask
-Werkzeug
-requests
-pandas
+# Flask
+# Werkzeug
+# requests
+# pandas
+# numpy
+# bs4
+# beautifulsoup4
+# lxml
+# soupsieve
+# pytz
+# Jinja2
+# itsdangerous
+# setuptools
+# MarkupSafe
+# python-dateutil
+# certifi
+# chardet
+# request
+# google
+# six
+# idna
+# urllib3
+# html5lib
 numpy
+pandas
 bs4
 beautifulsoup4
 lxml
-soupsieve
-pytz
-Jinja2
-itsdangerous
-click
-setuptools
-MarkupSafe
-python-dateutil
-certifi
-chardet
-request
-google
-six
-idna
-urllib3
+Flask
+Werkzeug
 html5lib
+urllib3
+requests
