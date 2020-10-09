@@ -11,19 +11,26 @@ import 'settings_app.dart';
 import 'package:flutter/services.dart';
 import 'package:flare_splash_screen/flare_splash_screen.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
-      .then((_) {
-    runApp(new MyApp());
-  });
+  runApp(new MyApp());
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+
     return MaterialApp(
+      builder: (context, child) {
+        return ScrollConfiguration(
+          behavior: MyBehavior(),
+          child: child,
+        );
+      },
       title: 'Grade Genius',
       theme: ThemeData(
         primaryColor: Colors.cyan,
@@ -38,12 +45,22 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class MyBehavior extends ScrollBehavior {
+  @override
+  Widget buildViewportChrome(
+      BuildContext context, Widget child, AxisDirection axisDirection) {
+    return child;
+  }
+}
+
 class MyLoginPage extends StatefulWidget {
   @override
   _LoginPage createState() => _LoginPage();
 }
 
 class DataInfo {
+  List dateList;
+  String user;
   String studentGrade;
   String studentName;
   String studentID;
@@ -52,7 +69,12 @@ class DataInfo {
   Map classAverages;
   Map classAssignments;
   List myCookies;
+  List newAssignments;
+  List newScores;
+  List newClasses;
   DataInfo({
+    this.dateList,
+    this.user,
     this.studentGrade,
     this.studentID,
     this.studentName,
@@ -61,6 +83,9 @@ class DataInfo {
     this.classAverages,
     this.classAssignments,
     this.myCookies,
+    this.newAssignments,
+    this.newScores,
+    this.newClasses,
   });
 }
 
@@ -72,7 +97,7 @@ class _LoginPage extends State<MyLoginPage> {
   List<Cookie> myCookies = [];
 
   // local Android host url = 'http://10.0.2.2:5000/'
-  // app url = 'https://inductive-seat-277103.uc.r.appspot.com/'
+  // app url = 'https://gradegenius.org/'
   String host = 'http://10.0.2.2:5000/';
   bool isLoggedIn = false;
   bool gotInfo = false;
@@ -86,6 +111,22 @@ class _LoginPage extends State<MyLoginPage> {
   bool gradeError = false;
   String userPassError;
   bool _obscureText = true;
+  bool displayLoad = false;
+  var loginButton;
+  var dataLoginPage;
+  bool error = false;
+  String oldClassString = "";
+  String currentClassString = "";
+  Map oldMap;
+  Map currentMap;
+  String oldC = "";
+  String currentC = "";
+  Map oldClassesMap;
+  Map currentClassesMap;
+  List diffAssignments = [];
+  List diffScores = [];
+  List diffClasses = [];
+  String oldReportRun = "";
 
   Future<HttpClientResponse> makeRequest(
       Uri uri, List<Cookie> requestCookies) async {
@@ -140,12 +181,295 @@ class _LoginPage extends State<MyLoginPage> {
     return false;
   }
 
+  addStringToSF(oldString, name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString(name + ' oldClassString', oldString);
+  }
+
+  getStringValuesSF(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String stringValue = prefs.get(name + ' oldClassString');
+    return (stringValue.toString());
+  }
+
+  checkAvailable(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool checkVal = prefs.containsKey(name + ' oldClassString');
+    return checkVal;
+  }
+
+  addStringToSF2(oldString, name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString(name + ' oldClasses', oldString);
+  }
+
+  getStringValuesSF2(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String stringValue = prefs.get(name + ' oldClasses');
+    return (stringValue.toString());
+  }
+
+  checkAvailable2(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool checkVal = prefs.containsKey(name + ' oldClasses');
+    return checkVal;
+  }
+
+  addRun(oldRun, name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString(name + ' run', oldRun);
+  }
+
+  getRun(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String stringValue = prefs.get(name + ' run');
+    return (stringValue.toString());
+  }
+
+  checkAvailableRun(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool checkVal = prefs.containsKey(name + ' run');
+    return checkVal;
+  }
+
   @override
   Widget build(BuildContext context) {
     void _toggle() {
       setState(() {
         _obscureText = !_obscureText;
       });
+    }
+
+    void differenceMethod() async {
+      String studentName = dataLoginPage.studentName;
+      String currentReportRun = dataLoginPage.reportRun;
+      try {
+        if (checkAvailableRun(studentName) == false) {
+          await addRun(currentReportRun, studentName);
+        }
+        if (checkAvailable(studentName) == false &&
+            checkAvailable2(studentName) == false) {
+          await addStringToSF(
+              (json.encode(dataLoginPage.classAssignments).toString()),
+              studentName);
+          await addStringToSF2(
+              (json.encode(dataLoginPage.classAverages).toString()),
+              studentName);
+        } else {
+          currentClassString =
+              json.encode(dataLoginPage.classAssignments).toString();
+          oldClassString = await getStringValuesSF(studentName);
+          currentC = json.encode(dataLoginPage.classAverages).toString();
+          oldC = await getStringValuesSF2(studentName);
+          oldReportRun = await getRun(studentName);
+          await addRun(currentReportRun, studentName);
+          await addStringToSF2(
+              (json.encode(dataLoginPage.classAverages).toString()),
+              studentName);
+          await addStringToSF(
+              (json.encode(dataLoginPage.classAssignments).toString()),
+              studentName);
+        }
+
+        if (currentReportRun == oldReportRun) {
+          oldMap = await json.decode(oldClassString);
+          currentMap = await json.decode(currentClassString);
+          oldClassesMap = await json.decode(oldC);
+          currentClassesMap = await json.decode(currentC);
+
+          List oldAssignments = [];
+          List oldScores = [];
+          List oldClasses = [];
+          List currAssignments = [];
+          List currScores = [];
+          List currClasses = [];
+          for (int index = 0;
+              index < currentClassesMap['Class Name'].length;
+              index++) {
+            String indexName = "Class " + (index + 1).toString();
+            oldAssignments.add(oldMap[indexName]['Assignments']);
+            oldScores.add(oldMap[indexName]['Score']);
+            oldClasses.add(oldClassesMap['Class Name'][index]);
+            currAssignments.add(currentMap[indexName]['Assignments']);
+            currScores.add(currentMap[indexName]['Score']);
+            currClasses.add(currentClassesMap['Class Name'][index]);
+          }
+
+          int value = 0;
+          for (int index = 0; index < currAssignments.length; index++) {
+            value = 0;
+            currAssignments[index].forEach((element) {
+              if (!oldAssignments[index].contains(element)) {
+                diffAssignments.add(element);
+                diffScores.add(currScores[index][value]);
+                diffClasses.add(currClasses[index]);
+              }
+              value++;
+            });
+          }
+        } else {
+          diffAssignments = [];
+          diffScores = [];
+          diffClasses = [];
+        }
+      } on RangeError {
+        setState(() {
+          error = true;
+        });
+      } on NoSuchMethodError {
+        setState(() {
+          error = true;
+        });
+      } on FormatException {
+        setState(() {
+          error = true;
+        });
+      } on Error {
+        setState(() {
+          error = true;
+        });
+      }
+    }
+
+    if (displayLoad == false) {
+      loginButton = Container(
+        child: InkWell(
+          child: Container(
+            width: 300,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: ShapeDecoration(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30.0),
+              ),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.amber,
+                  Colors.orangeAccent[700],
+                  Colors.redAccent[400],
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Text(
+              'LOGIN',
+              style: GoogleFonts.quicksand(
+                textStyle: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 21.5,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          onTap: () async {
+            try {
+              setState(() {
+                errorMessage = '';
+                gotInfo = false;
+                _obscureText = true;
+                displayLoad = true;
+              });
+              FocusScope.of(context).unfocus();
+              var gradesList = '';
+              if (loginUrl == '' || user == '' || pass == '') {
+                setState(() {
+                  isError = true;
+                });
+              }
+              if (isError == false) {
+                gradesList = await mainInfo(loginUrl);
+              }
+              if (isLoggedIn == true && gradeError == false) {
+                setState(() {
+                  gotInfo = true;
+                });
+                Map infoMap;
+                Map averagesMap;
+                Map assignmentsMap;
+                List dates;
+                var currMap;
+                String reportRun;
+                setState(
+                  () {
+                    currMap = json.decode(gradesList);
+                    infoMap = currMap['Info'];
+                    averagesMap = currMap['Averages'];
+                    dates = currMap["Date List"];
+                    assignmentsMap = currMap['Grades'];
+                    reportRun = currMap['Report Run'];
+                  },
+                );
+                dataLoginPage = DataInfo(
+                  dateList: dates,
+                  user: user,
+                  studentGrade: (infoMap['Grade']),
+                  studentName: (infoMap['Name']),
+                  studentID: (infoMap['ID']),
+                  studentSchool: (infoMap['Home Campus']),
+                  reportRun: (reportRun),
+                  classAverages: averagesMap,
+                  classAssignments: assignmentsMap,
+                  myCookies: myCookies,
+                );
+                differenceMethod();
+                final dataLoginPage2 = DataInfo(
+                  dateList: dates,
+                  user: user,
+                  studentGrade: (infoMap['Grade']),
+                  studentName: (infoMap['Name']),
+                  studentID: (infoMap['ID']),
+                  studentSchool: (infoMap['Home Campus']),
+                  reportRun: (reportRun),
+                  classAverages: averagesMap,
+                  classAssignments: assignmentsMap,
+                  myCookies: myCookies,
+                  newAssignments: diffAssignments,
+                  newScores: diffScores,
+                  newClasses: diffClasses,
+                );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MyWelcomePage(
+                      dataHomePage: dataLoginPage2,
+                    ),
+                  ),
+                );
+              }
+              if (gotInfo == false) {
+                setState(() {
+                  displayLoad = false;
+                  textVisible = true;
+                  password.clear();
+                  errorMessage =
+                      'Username and/or password is incorrect. Please try again.';
+                  isError = false;
+                });
+              }
+            } on NoSuchMethodError {
+              gradeError = true;
+              isLoading = false;
+            } on HttpException {
+              gradeError = true;
+              isLoading = false;
+            } on Error {
+              gradeError = true;
+              isLoading = false;
+            }
+          },
+        ),
+      );
+    } else {
+      loginButton = Center(
+        child: SizedBox(
+          height: 20.0,
+          child: SpinKitWave(
+            color: Colors.grey,
+          ),
+        ),
+      );
     }
 
     var loadingIndicator = isLoading
@@ -416,9 +740,6 @@ class _LoginPage extends State<MyLoginPage> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.all(5),
-                ),
                 Container(
                   child: Text(
                     errorMessage,
@@ -434,100 +755,7 @@ class _LoginPage extends State<MyLoginPage> {
                 Padding(
                   padding: EdgeInsets.all(20),
                 ),
-                InkWell(
-                  child: Container(
-                    width: 300,
-                    height: 50,
-                    alignment: Alignment.center,
-                    decoration: ShapeDecoration(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.0),
-                      ),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.amber,
-                          Colors.orangeAccent[700],
-                          Colors.redAccent[400],
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Text(
-                      'LOGIN',
-                      style: GoogleFonts.quicksand(
-                        textStyle: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 21.5,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  onTap: () async {
-                    setState(() {
-                      errorMessage = '';
-                      gotInfo = false;
-                      _obscureText = true;
-                    });
-                    FocusScope.of(context).unfocus();
-                    var gradesList = '';
-                    if (loginUrl == '' || user == '' || pass == '') {
-                      setState(() {
-                        isError = true;
-                      });
-                    }
-                    if (isError == false) {
-                      gradesList = await mainInfo(loginUrl);
-                    }
-                    if (isLoggedIn == true && gradeError == false) {
-                      setState(() {
-                        gotInfo = true;
-                      });
-                      Map infoMap;
-                      Map averagesMap;
-                      Map assignmentsMap;
-                      var currMap;
-                      String reportRun;
-                      setState(
-                        () {
-                          currMap = json.decode(gradesList);
-                          infoMap = currMap['Info'];
-                          averagesMap = currMap['Averages'];
-                          assignmentsMap = currMap['Grades'];
-                          reportRun = currMap['Report Run'];
-                        },
-                      );
-                      final dataLoginPage = DataInfo(
-                        studentGrade: (infoMap['Grade']),
-                        studentName: (infoMap['Name']),
-                        studentID: (infoMap['ID']),
-                        studentSchool: (infoMap['Home Campus']),
-                        reportRun: (reportRun),
-                        classAverages: averagesMap,
-                        classAssignments: assignmentsMap,
-                        myCookies: myCookies,
-                      );
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MyWelcomePage(
-                            dataHomePage: dataLoginPage,
-                          ),
-                        ),
-                      );
-                    }
-                    if (gotInfo == false) {
-                      setState(() {
-                        textVisible = true;
-                        password.clear();
-                        errorMessage =
-                            'Username and/or password is incorrect. Please try again.';
-                        isError = false;
-                      });
-                    }
-                  },
-                ),
+                loginButton,
                 Padding(
                   padding: EdgeInsets.all(10),
                 ),
@@ -598,7 +826,7 @@ class WelcomePage extends State<MyWelcomePage> {
   Widget callPage(_selectedTabIndex) {
     switch (_selectedTabIndex) {
       case 0:
-        return HomeApp(
+        return MyHomeApp(
           dataHomePage2: widget.dataHomePage,
         );
       case 1:
@@ -614,7 +842,7 @@ class WelcomePage extends State<MyWelcomePage> {
 
         break;
       default:
-        return HomeApp();
+        return MyHomeApp();
     }
   }
 

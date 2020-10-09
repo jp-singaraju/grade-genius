@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-import 'main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
-class HomeApp extends StatelessWidget {
-  final DataInfo dataHomePage2;
-  HomeApp({this.dataHomePage2});
+class MyHomeApp extends StatefulWidget {
+  final dataHomePage2;
+  MyHomeApp({this.dataHomePage2});
 
+  @override
+  HomeApp createState() => HomeApp();
+}
+
+class HomeApp extends State<MyHomeApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,7 +31,7 @@ class HomeApp extends StatelessWidget {
             ),
           ),
           AutoSizeText(
-            dataHomePage2.studentName + '!',
+            widget.dataHomePage2.studentName + '!',
             style: GoogleFonts.bitter(
               textStyle: TextStyle(
                   fontSize: 40.0, height: 1.3, color: Colors.grey[700]),
@@ -35,19 +39,25 @@ class HomeApp extends StatelessWidget {
             maxLines: 1,
           ),
           Text(
-            "Grade: " + dataHomePage2.studentGrade,
+            "Grade: " + widget.dataHomePage2.studentGrade,
             style: GoogleFonts.ibmPlexSans(
               textStyle: TextStyle(
                   fontSize: 25.0, height: 3.0, color: Colors.grey[700]),
             ),
           ),
           Text(
-            "ID: " + dataHomePage2.studentID,
+            "User: " + widget.dataHomePage2.user,
             style: GoogleFonts.ibmPlexSans(
               textStyle: TextStyle(
                   fontSize: 25.0, height: 1.4, color: Colors.grey[700]),
             ),
           ),
+          Padding(
+            padding: EdgeInsets.all(10),
+          ),
+          Text(widget.dataHomePage2.newAssignments.toString()),
+          Text(widget.dataHomePage2.newScores.toString()),
+          Text(widget.dataHomePage2.newClasses.toString()),
         ],
       ),
     );
