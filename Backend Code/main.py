@@ -118,11 +118,14 @@ def login():
         session['student name'] = name_student
 
         # creates a soup object
-        class_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/Classes.aspx"
-        r_class = session_hac.get(class_site, cookies=session.get('hac cookies'), headers=headers)
-        r_class = r_class.content
-        soup_id = BeautifulSoup(r_class, "lxml")
-        student_id = soup_id.find("span", id="plnMain_lblStudentIDValue").text
+        try:
+            class_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/Classes.aspx"
+            r_class = session_hac.get(class_site, cookies=session.get('hac cookies'), headers=headers)
+            r_class = r_class.content
+            soup_id = BeautifulSoup(r_class, "lxml")
+            student_id = soup_id.find("span", id="plnMain_lblStudentIDValue").text
+        except AttributeError:
+            student_id = "N/A"
 
         # sets the user info to a dictionary and then returns it
         info_dict = {'Name': name_student, 'Home Campus': school_student, 'Grade': grade_student, 'ID': student_id}
@@ -312,6 +315,11 @@ def grades():
             session['class names'] = class_name
             session['class averages'] = class_avg
 
+        date_updated = soup.find_all('span', {'class': 'sg-header-sub-heading'})
+        date_list = []
+        for date in date_updated:
+            date_list.append(date.text)
+
         class_divs = soup.find_all('div', {'class': 'AssignmentClass'})
 
         class_count = 0
@@ -389,133 +397,13 @@ def grades():
 
         # create an overall dictionary for all values
         dict_main_assignments = {"Report Run": session['report run'], "Info": session['student info'],
-                                 "Averages": dict_class, "Grades": main_class_dict}
+                                 "Date List": date_list, "Averages": dict_class, "Grades": main_class_dict}
 
         # return the json object mentioned
         return jsonify(dict_main_assignments)
     except (AttributeError, KeyError, TypeError, ValueError):
         return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
 
-
-# # defines the app route for new assignments
-# @app.route('/new')
-# # function in order to get new assignments
-# def new():
-#     # recall the name_student dict
-#     name_student = session['student name']
-#
-#     # Reopen the data stored for old assignments
-#     d = shelve.open('new_assignments.db')
-#     if name_student + " num_assignments" in d:
-#         data = d[name_student + " num_assignments"]
-#         saved_assignments_list = data
-#         session['previous'] = saved_assignments_list
-#     else:
-#         d[name_student + " num_assignments"] = [0, 0, 0, 0, 0, 0, 0, 0]
-#         saved_assignments_list = d[name_student + " num_assignments"]
-#         session['previous'] = saved_assignments_list
-#     d.close()
-#
-#     # define all session values
-#     count_assignments = session['current']
-#     saved_assignments_list = session['previous']
-#     class_name = session['class names']
-#     class_1_assignments = session['1 assignments']
-#     class_1_score = session['1 score']
-#     class_2_assignments = session['2 assignments']
-#     class_2_score = session['2 score']
-#     class_3_assignments = session['3 assignments']
-#     class_3_score = session['3 score']
-#     class_4_assignments = session['4 assignments']
-#     class_4_score = session['4 score']
-#     class_5_assignments = session['5 assignments']
-#     class_5_score = session['5 score']
-#     class_6_assignments = session['6 assignments']
-#     class_6_score = session['6 score']
-#     class_7_assignments = session['7 assignments']
-#     class_7_score = session['7 score']
-#     class_8_assignments = session['8 assignments']
-#     class_8_score = session['8 score']
-#
-#     # store the list into the saved_assignments_list variable name and then close the file
-#     data = count_assignments
-#     d = shelve.open('new_assignments.db')
-#     d[name_student + " num_assignments"] = data
-#     d.close()
-#
-#     # find the difference between the previous list and the current one
-#     difference = []
-#     for i in range(len(count_assignments)):
-#         if count_assignments[i] != saved_assignments_list[i]:
-#             int_val = int(count_assignments[i] - saved_assignments_list[i])
-#             if int_val > 0:
-#                 difference.append(int_val)
-#             else:
-#                 difference.append(0)
-#         else:
-#             difference.append(0)
-#
-#     # create new dictionary for json display
-#     new_grades_dict = {}
-#
-#     # new assignments and grades for them in class_1
-#     new_1_assignments = class_1_assignments[:difference[0]]
-#     new_1_score = class_1_score[:difference[0]]
-#     if difference[0] != 0:
-#         new_grades_dict.update({class_name[0]: [{"Assignments": new_1_assignments[x], "Grades": new_1_score[x]} for
-#                                                 x in range(len(new_1_assignments))]})
-#
-#     # new assignments and grades for them in class_2
-#     new_2_assignments = class_2_assignments[:difference[1]]
-#     new_2_score = class_2_score[:difference[1]]
-#     if difference[1] != 0:
-#         new_grades_dict.update({class_name[1]: [{"Assignments": new_2_assignments[x], "Grades": new_2_score[x]} for
-#                                                 x in range(len(new_2_assignments))]})
-#
-#     # new assignments and grades for them in class_3
-#     new_3_assignments = class_3_assignments[:difference[2]]
-#     new_3_score = class_3_score[:difference[2]]
-#     if difference[2] != 0:
-#         new_grades_dict.update({class_name[2]: [{"Assignments": new_3_assignments[x], "Grades": new_3_score[x]} for
-#                                                 x in range(len(new_3_assignments))]})
-#
-#     # new assignments and grades for them in class_4
-#     new_4_assignments = class_4_assignments[:difference[3]]
-#     new_4_score = class_4_score[:difference[3]]
-#     if difference[3] != 0:
-#         new_grades_dict.update({class_name[3]: [{"Assignments": new_4_assignments[x], "Grades": new_4_score[x]} for
-#                                                 x in range(len(new_4_assignments))]})
-#
-#     # new assignments and grades for them in class_5
-#     new_5_assignments = class_5_assignments[:difference[4]]
-#     new_5_score = class_5_score[:difference[4]]
-#     if difference[4] != 0:
-#         new_grades_dict.update({class_name[4]: [{"Assignments": new_5_assignments[x], "Grades": new_5_score[x]} for
-#                                                 x in range(len(new_5_assignments))]})
-#
-#     # new assignments and grades for them in class_6
-#     new_6_assignments = class_6_assignments[:difference[5]]
-#     new_6_score = class_6_score[:difference[5]]
-#     if difference[5] != 0:
-#         new_grades_dict.update({class_name[5]: [{"Assignments": new_6_assignments[x], "Grades": new_6_score[x]} for
-#                                                 x in range(len(new_6_assignments))]})
-#
-#     # new assignments and grades for them in class_7
-#     new_7_assignments = class_7_assignments[:difference[6]]
-#     new_7_score = class_7_score[:difference[6]]
-#     if difference[6] != 0:
-#         new_grades_dict.update({class_name[6]: [{"Assignments": new_7_assignments[x], "Grades": new_7_score[x]} for
-#                                                 x in range(len(new_7_assignments))]})
-#
-#     # new assignments and grades for them in class_8
-#     new_8_assignments = class_8_assignments[:difference[7]]
-#     new_8_score = class_8_score[:difference[7]]
-#     if difference[7] != 0:
-#         new_grades_dict.update({class_name[7]: [{"Assignments": new_8_assignments[x], "Grades": new_8_score[x]} for
-#                                                 x in range(len(new_8_assignments))]})
-#
-#     # return the json value of this dict
-#     return jsonify({"Run " + session['report run']: new_grades_dict})
 
 # defines the app route for schedule
 @app.route('/schedule')
