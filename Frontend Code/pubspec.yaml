@@ -27,8 +27,10 @@ dependencies:
   bottom_navy_bar:
   auto_size_text:
   flutter_spinkit:
-  page_transition: ^1.1.5
+  page_transition:
   shared_preferences:
+  json_table:
+  font_awesome_flutter:
 
 
   # The following adds the Cupertino Icons font to your application.

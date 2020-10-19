@@ -161,6 +161,7 @@ class _LoginPage extends State<MyLoginPage> {
       response = await makeRequest(location, response.cookies);
       if (response.statusCode == 404 || response.statusCode == 500) {
         setState(() {
+          displayLoad = false;
           isLoading = false;
           gradeError = true;
           gotInfo = true;
@@ -240,7 +241,7 @@ class _LoginPage extends State<MyLoginPage> {
       });
     }
 
-    void differenceMethod() async {
+    differenceMethod() async {
       String studentName = dataLoginPage.studentName;
       String currentReportRun = dataLoginPage.reportRun;
       try {
@@ -366,6 +367,13 @@ class _LoginPage extends State<MyLoginPage> {
           onTap: () async {
             try {
               setState(() {
+                user = username.text;
+                user = user.trim();
+                pass = password.text;
+                pass = pass.trim();
+                loginUrl = host + 'login';
+              });
+              setState(() {
                 errorMessage = '';
                 gotInfo = false;
                 _obscureText = true;
@@ -413,7 +421,7 @@ class _LoginPage extends State<MyLoginPage> {
                   classAssignments: assignmentsMap,
                   myCookies: myCookies,
                 );
-                differenceMethod();
+                await differenceMethod();
                 final dataLoginPage2 = DataInfo(
                   dateList: dates,
                   user: user,
@@ -701,13 +709,6 @@ class _LoginPage extends State<MyLoginPage> {
                                 child: TextField(
                                   maxLines: 1,
                                   controller: password,
-                                  onChanged: (x) {
-                                    user = username.text;
-                                    user = user.trim();
-                                    pass = password.text;
-                                    pass = pass.trim();
-                                    loginUrl = host + 'login';
-                                  },
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
                                     hintText: 'Password',
@@ -839,10 +840,11 @@ class WelcomePage extends State<MyWelcomePage> {
         );
       case 3:
         return SettingsApp();
-
         break;
       default:
-        return MyHomeApp();
+        return MyHomeApp(
+          dataHomePage2: widget.dataHomePage,
+        );
     }
   }
 

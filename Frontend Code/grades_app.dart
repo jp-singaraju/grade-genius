@@ -157,30 +157,6 @@ class GradePage extends State<MyGradePage> {
                   ),
                 ],
               ),
-              // child: CupertinoAlertDialog(
-              //   title: Text(
-              //     '404 Data Error',
-              //     style: GoogleFonts.roboto(
-              //       fontSize: 21,
-              //     ),
-              //   ),
-              //   content: Text(
-              //     '\nGrade Genius could not open the selected Marking Period data. Either the HAC servers are down or the Marking Period has not been updated yet. Please try again later.',
-              //     style: GoogleFonts.roboto(
-              //       fontSize: 16,
-              //     ),
-              //   ),
-              //   actions: <Widget>[
-              //     CupertinoDialogAction(
-              //       child: Text('Cancel'),
-              //       onPressed: () {
-              //         setState(() {
-              //           error = false;
-              //         });
-              //       },
-              //     ),
-              //   ],
-              // ),
             ),
           )
         : new Container();
@@ -482,6 +458,17 @@ class GradePage extends State<MyGradePage> {
                                       "Date List":
                                           widget.dataGrades.dateList[index]
                                     });
+                                    infoDict.addAll({
+                                      "New Assignments":
+                                          widget.dataGrades.newAssignments
+                                    });
+                                    infoDict.addAll({
+                                      "New Scores": widget.dataGrades.newScores
+                                    });
+                                    infoDict.addAll({
+                                      "New Classes":
+                                          widget.dataGrades.newClasses
+                                    });
                                     Navigator.push(
                                       context,
                                       PageTransition(
@@ -533,6 +520,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
   var newAddition;
   var replacement;
   var past6;
+  var newGrades;
   var countAdded = 0;
   bool addNew = false;
   String gradeType;
@@ -1712,6 +1700,36 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
           : new Container();
     }
 
+    void checkNewGrades(assignment) {
+      bool checkGrades =
+          widget.dataGradePage["New Assignments"].contains(assignment);
+      if (checkGrades == true) {
+        newGrades = Container(
+          decoration: BoxDecoration(
+            color: Colors.lightGreenAccent[400],
+            border: Border.all(
+              color: Colors.black,
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(7),
+          ),
+          padding: EdgeInsets.all(2.5),
+          child: AutoSizeText(
+            "NEW",
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: GoogleFonts.roboto(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        );
+      } else {
+        newGrades = Container();
+      }
+    }
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
@@ -1953,6 +1971,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                 child: ListView.builder(
                   itemCount: classAssignments.length,
                   itemBuilder: (context, index) {
+                    checkNewGrades(classAssignments[index]);
                     return Container(
                       alignment: Alignment.center,
                       padding: EdgeInsets.only(
@@ -1977,380 +1996,407 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               Radius.circular(15),
                             ),
                           ),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.all(10),
-                            leading: IconButton(
-                              tooltip: 'Edit',
-                              alignment: Alignment.centerLeft,
-                              onPressed: () {
-                                setState(
-                                  () {
-                                    changeNum = index;
-                                    _checkEditError(index);
-                                    try {
-                                      if (((_isNumeric(assignmentsGrades[
-                                                          index]) ==
-                                                      true ||
-                                                  assignmentsGrades[index] ==
-                                                      '') &&
-                                              _isNumeric(assignmentsTotalPoints[
-                                                      index]) ==
-                                                  true) &&
-                                          assignmentsCategory[index] !=
-                                              'Non-graded') {
-                                        editG = true;
-                                        if (double.parse(
-                                                assignmentsTotalPoints[index]) <
-                                            100) {
-                                          setState(() {
-                                            assignmentsWeight[
-                                                index] = (double.parse(
-                                                        assignmentsTotalPoints[
-                                                            index]) /
-                                                    100)
-                                                .toString();
-                                            assignmentsGrades[
-                                                index] = ((double.parse(
-                                                            assignmentsWeightScore[
-                                                                index]) /
-                                                        (double.parse(
-                                                            assignmentsWeightScore[
-                                                                index]))) *
-                                                    100)
-                                                .toString();
-                                          });
-                                        }
-                                        grade.text = assignmentsGrades[index];
-                                        weight.text = assignmentsWeight[index];
-                                        if (assignmentsCategory[index] ==
-                                            'Minor Grades') {
-                                          _radioValChange(0);
-                                        } else if (assignmentsCategory[index] ==
-                                            'Major Grades') {
-                                          _radioValChange(1);
-                                        } else {
-                                          _radioValChange(2);
-                                        }
-                                        addNew = true;
-                                        editMyGrade = true;
-                                      }
-                                    } on FormatException {
-                                      editError = true;
-                                    }
-                                  },
-                                );
-                              },
-                              icon: Icon(
-                                Icons.edit,
-                                size: 25,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                            title: AutoSizeText(
-                              classAssignments[index],
-                              overflow: TextOverflow.ellipsis,
-                              minFontSize: 19,
-                              maxLines: 4,
-                              style: GoogleFonts.cabin(
-                                color: Colors.black87,
-                              ),
-                            ),
-                            trailing: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(12),
-                                ),
-                                color: Colors.white,
-                                border: Border.all(
-                                  color: Colors.black,
-                                  width: 2,
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              height: 45,
-                              width: 82,
-                              child: AutoSizeText(
-                                assignmentsGrades[index],
-                                overflow: TextOverflow.ellipsis,
-                                minFontSize: 21,
-                                maxLines: 1,
-                                style: GoogleFonts.heebo(
-                                  fontWeight: FontWeight.bold,
-                                  color: _assignmentGradeC(
-                                      assignmentsGrades[index], index),
-                                ),
-                              ),
-                            ),
-                            onTap: () {
-                              showModalBottomSheet(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(40),
-                                    topRight: Radius.circular(40),
-                                  ),
-                                ),
-                                context: context,
-                                builder: (context) => Container(
-                                  height: 450,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[300],
-                                    borderRadius: BorderRadius.only(
-                                      topRight: Radius.circular(40),
-                                      topLeft: Radius.circular(40),
-                                    ),
-                                    border: Border.all(
-                                      color: Colors.grey[700],
-                                      width: 2.6,
-                                    ),
-                                  ),
-                                  child: Container(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
-                                      children: <Widget>[
-                                        Container(
-                                          padding: EdgeInsets.only(
-                                              top: 5, left: 8, right: 8),
-                                          alignment: Alignment.center,
-                                          child: AutoSizeText(
-                                            classAssignments[index],
-                                            textAlign: TextAlign.center,
-                                            maxLines: 3,
-                                            minFontSize: 24,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.mukta(
-                                              decoration:
-                                                  TextDecoration.underline,
-                                              color: Colors.black,
-                                              textStyle: TextStyle(
-                                                height: 1.7,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: <Widget>[
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              child: AutoSizeText(
-                                                'Category: ',
-                                                maxLines: 1,
-                                                minFontSize: 18,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 220,
-                                              child: AutoSizeText(
-                                                'Weighted Score: ',
-                                                maxLines: 1,
-                                                minFontSize: 18,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: <Widget>[
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              height: 110,
-                                              child: AutoSizeText(
-                                                assignmentsCategory[index],
-                                                maxLines: 2,
-                                                minFontSize: 20,
-                                                textAlign: TextAlign.center,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: Colors.grey[900],
-                                                  width: 2.5,
-                                                ),
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(30),
-                                                ),
-                                                color: Colors.grey[100],
-                                              ),
-                                            ),
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 220,
-                                              height: 110,
-                                              child: AutoSizeText(
-                                                assignmentsWeightScore[index] +
-                                                    " / " +
+                          child: Stack(
+                            alignment: Alignment.topLeft,
+                            children: [
+                              newGrades,
+                              ListTile(
+                                contentPadding: EdgeInsets.all(12),
+                                leading: IconButton(
+                                  tooltip: 'Edit',
+                                  alignment: Alignment.centerLeft,
+                                  onPressed: () {
+                                    setState(
+                                      () {
+                                        changeNum = index;
+                                        _checkEditError(index);
+                                        try {
+                                          if (((_isNumeric(assignmentsGrades[
+                                                              index]) ==
+                                                          true ||
+                                                      assignmentsGrades[
+                                                              index] ==
+                                                          '') &&
+                                                  _isNumeric(
+                                                          assignmentsTotalPoints[
+                                                              index]) ==
+                                                      true) &&
+                                              assignmentsCategory[index] !=
+                                                  'Non-graded') {
+                                            editG = true;
+                                            if (double.parse(
                                                     assignmentsTotalPoints[
-                                                        index],
-                                                maxLines: 1,
-                                                minFontSize: 20,
-                                                textAlign: TextAlign.center,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: Colors.grey[900],
-                                                  width: 2.5,
-                                                ),
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(30),
-                                                ),
-                                                color: Colors.grey[100],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: <Widget>[
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              child: AutoSizeText(
-                                                'Due Date: ',
-                                                maxLines: 1,
-                                                minFontSize: 18,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              child: AutoSizeText(
-                                                'Weight: ',
-                                                maxLines: 1,
-                                                minFontSize: 18,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              child: AutoSizeText(
-                                                'Percentage: ',
-                                                maxLines: 1,
-                                                minFontSize: 18,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: <Widget>[
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              height: 110,
-                                              child: AutoSizeText(
-                                                assignmentsDueDate[index],
-                                                maxLines: 1,
-                                                minFontSize: 16,
-                                                textAlign: TextAlign.center,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: Colors.grey[900],
-                                                  width: 2.5,
-                                                ),
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(30),
-                                                ),
-                                                color: Colors.grey[100],
-                                              ),
-                                            ),
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              height: 110,
-                                              child: AutoSizeText(
-                                                assignmentsWeight[index],
-                                                maxLines: 1,
-                                                minFontSize: 17,
-                                                textAlign: TextAlign.center,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: Colors.grey[900],
-                                                  width: 2.5,
-                                                ),
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(30),
-                                                ),
-                                                color: Colors.grey[100],
-                                              ),
-                                            ),
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              height: 110,
-                                              child: AutoSizeText(
-                                                assignmentsPercent[index],
-                                                maxLines: 1,
-                                                minFontSize: 17,
-                                                textAlign: TextAlign.center,
-                                                style: GoogleFonts.alata(
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: Colors.grey[900],
-                                                  width: 2.5,
-                                                ),
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(30),
-                                                ),
-                                                color: Colors.grey[100],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                                        index]) <
+                                                100) {
+                                              setState(() {
+                                                assignmentsWeight[
+                                                    index] = (double.parse(
+                                                            assignmentsTotalPoints[
+                                                                index]) /
+                                                        100)
+                                                    .toString();
+                                                if (assignmentsWeightScore[
+                                                        index] !=
+                                                    "") {
+                                                  assignmentsGrades[
+                                                      index] = ((double.parse(
+                                                                  assignmentsWeightScore[
+                                                                      index]) /
+                                                              (double.parse(
+                                                                  assignmentsTotalPoints[
+                                                                      index]))) *
+                                                          100)
+                                                      .toStringAsFixed(2);
+                                                } else {
+                                                  assignmentsGrades[index] = "";
+                                                }
+                                              });
+                                            }
+
+                                            grade.text =
+                                                assignmentsGrades[index];
+                                            weight.text =
+                                                assignmentsWeight[index];
+                                            if (assignmentsCategory[index] ==
+                                                'Minor Grades') {
+                                              _radioValChange(0);
+                                            } else if (assignmentsCategory[
+                                                    index] ==
+                                                'Major Grades') {
+                                              _radioValChange(1);
+                                            } else {
+                                              _radioValChange(2);
+                                            }
+                                            addNew = true;
+                                            editMyGrade = true;
+                                          }
+                                        } on FormatException {
+                                          editError = true;
+                                        } on TypeError {
+                                          editError = true;
+                                        }
+                                      },
+                                    );
+                                  },
+                                  icon: Icon(
+                                    Icons.edit,
+                                    size: 25,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                title: AutoSizeText(
+                                  classAssignments[index],
+                                  overflow: TextOverflow.ellipsis,
+                                  minFontSize: 19,
+                                  maxLines: 4,
+                                  style: GoogleFonts.cabin(
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                trailing: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(12),
+                                    ),
+                                    color: Colors.white,
+                                    border: Border.all(
+                                      color: Colors.black,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  height: 45,
+                                  width: 82,
+                                  child: AutoSizeText(
+                                    assignmentsGrades[index],
+                                    overflow: TextOverflow.ellipsis,
+                                    minFontSize: 21,
+                                    maxLines: 1,
+                                    style: GoogleFonts.heebo(
+                                      fontWeight: FontWeight.bold,
+                                      color: _assignmentGradeC(
+                                          assignmentsGrades[index], index),
                                     ),
                                   ),
                                 ),
-                              );
-                            },
+                                onTap: () {
+                                  showModalBottomSheet(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(40),
+                                        topRight: Radius.circular(40),
+                                      ),
+                                    ),
+                                    context: context,
+                                    builder: (context) => Container(
+                                      height: 450,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.only(
+                                          topRight: Radius.circular(40),
+                                          topLeft: Radius.circular(40),
+                                        ),
+                                        border: Border.all(
+                                          color: Colors.grey[700],
+                                          width: 2.6,
+                                        ),
+                                      ),
+                                      child: Container(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: <Widget>[
+                                            Container(
+                                              padding: EdgeInsets.only(
+                                                  top: 5, left: 8, right: 8),
+                                              alignment: Alignment.center,
+                                              child: AutoSizeText(
+                                                classAssignments[index],
+                                                textAlign: TextAlign.center,
+                                                maxLines: 3,
+                                                minFontSize: 24,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.mukta(
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                  color: Colors.black,
+                                                  textStyle: TextStyle(
+                                                    height: 1.7,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: <Widget>[
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 110,
+                                                  child: AutoSizeText(
+                                                    'Category: ',
+                                                    maxLines: 1,
+                                                    minFontSize: 18,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 220,
+                                                  child: AutoSizeText(
+                                                    'Weighted Score: ',
+                                                    maxLines: 1,
+                                                    minFontSize: 18,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: <Widget>[
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 110,
+                                                  height: 110,
+                                                  child: AutoSizeText(
+                                                    assignmentsCategory[index],
+                                                    maxLines: 2,
+                                                    minFontSize: 20,
+                                                    textAlign: TextAlign.center,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                      color: Colors.grey[900],
+                                                      width: 2.5,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.all(
+                                                      Radius.circular(30),
+                                                    ),
+                                                    color: Colors.grey[100],
+                                                  ),
+                                                ),
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 220,
+                                                  height: 110,
+                                                  child: AutoSizeText(
+                                                    assignmentsWeightScore[
+                                                            index] +
+                                                        " / " +
+                                                        assignmentsTotalPoints[
+                                                            index],
+                                                    maxLines: 1,
+                                                    minFontSize: 20,
+                                                    textAlign: TextAlign.center,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                      color: Colors.grey[900],
+                                                      width: 2.5,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.all(
+                                                      Radius.circular(30),
+                                                    ),
+                                                    color: Colors.grey[100],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: <Widget>[
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 110,
+                                                  child: AutoSizeText(
+                                                    'Due Date: ',
+                                                    maxLines: 1,
+                                                    minFontSize: 18,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 110,
+                                                  child: AutoSizeText(
+                                                    'Weight: ',
+                                                    maxLines: 1,
+                                                    minFontSize: 18,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 110,
+                                                  child: AutoSizeText(
+                                                    'Percentage: ',
+                                                    maxLines: 1,
+                                                    minFontSize: 18,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: <Widget>[
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 110,
+                                                  height: 110,
+                                                  child: AutoSizeText(
+                                                    assignmentsDueDate[index],
+                                                    maxLines: 1,
+                                                    minFontSize: 16,
+                                                    textAlign: TextAlign.center,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                      color: Colors.grey[900],
+                                                      width: 2.5,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.all(
+                                                      Radius.circular(30),
+                                                    ),
+                                                    color: Colors.grey[100],
+                                                  ),
+                                                ),
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 110,
+                                                  height: 110,
+                                                  child: AutoSizeText(
+                                                    assignmentsWeight[index],
+                                                    maxLines: 1,
+                                                    minFontSize: 17,
+                                                    textAlign: TextAlign.center,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                      color: Colors.grey[900],
+                                                      width: 2.5,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.all(
+                                                      Radius.circular(30),
+                                                    ),
+                                                    color: Colors.grey[100],
+                                                  ),
+                                                ),
+                                                Container(
+                                                  alignment: Alignment.center,
+                                                  width: 110,
+                                                  height: 110,
+                                                  child: AutoSizeText(
+                                                    assignmentsPercent[index],
+                                                    maxLines: 1,
+                                                    minFontSize: 17,
+                                                    textAlign: TextAlign.center,
+                                                    style: GoogleFonts.alata(
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                      color: Colors.grey[900],
+                                                      width: 2.5,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.all(
+                                                      Radius.circular(30),
+                                                    ),
+                                                    color: Colors.grey[100],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ),
                       ),
