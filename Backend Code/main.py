@@ -139,7 +139,7 @@ def login():
             return redirect(url_for("grades"))
         else:
             return jsonify({"status": "error", "msg": "fisd server down"}), 404
-    except (AttributeError, KeyError, TypeError, ValueError):
+    except (AttributeError, KeyError, TypeError, ValueError, IndexError):
         return jsonify({"status": "error", "msg": "fisd server down"}), 404
 
 
@@ -401,7 +401,7 @@ def grades():
 
         # return the json object mentioned
         return jsonify(dict_main_assignments)
-    except (AttributeError, KeyError, TypeError, ValueError):
+    except (AttributeError, KeyError, TypeError, ValueError, IndexError):
         return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
 
 
@@ -455,7 +455,7 @@ def schedule():
         schedule_dict = {"Course": schedule_course, "Class": schedule_class, "Period": periods, "Teacher": teacher,
                          "Room": room, "Days": days, "Marking Period": marking_period, "Building": building}
         return jsonify(schedule_dict)
-    except (AttributeError, KeyError, TypeError, ValueError):
+    except (AttributeError, KeyError, TypeError, ValueError, IndexError):
         return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
 
 
@@ -559,7 +559,7 @@ def report_card():
 
         # return the report card (table) in dictionary format
         return jsonify(final_dict)
-    except (AttributeError, KeyError, TypeError, ValueError):
+    except (AttributeError, KeyError, TypeError, ValueError, IndexError):
         return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
 
 
@@ -580,9 +580,7 @@ def gpa():
             soup_transcript = BeautifulSoup(transcript_text, "lxml")
             table_transcript = soup_transcript.find("table", id="plnMain_rpTranscriptGroup_tblCumGPAInfo")
             weighted_gpa = table_transcript.find("span", id="plnMain_rpTranscriptGroup_lblGPACum1").text
-            weighted_gpa += "/6.0000"
             unweighted_gpa = table_transcript.find("span", id="plnMain_rpTranscriptGroup_lblGPACum2").text
-            unweighted_gpa += "/4.0000"
 
             # create a gpa dict and return the dictionary
             gpa_dict = {"Weighted GPA": weighted_gpa, "Unweighted GPA": unweighted_gpa}
@@ -590,7 +588,7 @@ def gpa():
 
         # else print GPA is N/A
         else:
-            gpa_dict = {"Weighted GPA": "None", "Unweighted": "None"}
+            gpa_dict = {"Weighted GPA": "None", "Unweighted GPA": "None"}
             return jsonify(gpa_dict)
     except (AttributeError, KeyError, TypeError, ValueError):
         return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
