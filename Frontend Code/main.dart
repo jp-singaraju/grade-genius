@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flare_splash_screen/flare_splash_screen.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 void main() {
   runApp(new MyApp());
@@ -20,11 +21,17 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setEnabledSystemUIOverlays(
+        [SystemUiOverlay.top, SystemUiOverlay.bottom]);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.black,
+      statusBarColor: Colors.black,
+    ));
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
-
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       builder: (context, child) {
         return ScrollConfiguration(
           behavior: MyBehavior(),
@@ -45,6 +52,226 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// List<Slide> slides = new List();
+// class MyIntroScreen extends StatefulWidget {
+//   @override
+//   _IntroPage createState() => _IntroPage();
+// }
+
+// class _IntroPage extends State<MyIntroScreen> {
+//   Future<bool> _willPopCallback() async {
+//     return false;
+//   }
+
+//   @override
+//   void initState() {
+//     super.initState();
+
+//     Shader linearGradient = LinearGradient(
+//       colors: <Color>[
+//         Colors.red[900],
+//         Colors.yellow[700],
+//         Colors.greenAccent[700],
+//         Colors.blue[700],
+//         Colors.purple,
+//         Colors.pink[300],
+//       ],
+//     ).createShader(
+//       Rect.fromLTWH(0.0, 0.0, 275.0, 0),
+//     );
+
+//     Shader linearGradient1 = LinearGradient(
+//       colors: <Color>[
+//         Colors.red[900],
+//         Colors.orangeAccent[700],
+//         Colors.amber,
+//         Colors.green[400],
+//       ],
+//     ).createShader(
+//       Rect.fromLTWH(0.0, 0.0, 275.0, 0),
+//     );
+
+//     Shader linearGradient2 = LinearGradient(
+//       colors: <Color>[
+//         Colors.yellow[700],
+//         Colors.greenAccent[400],
+//         Colors.teal[400],
+//         Colors.lightBlue[400],
+//       ],
+//     ).createShader(
+//       Rect.fromLTWH(0.0, 0.0, 275.0, 0),
+//     );
+
+//     Shader linearGradient3 = LinearGradient(
+//       colors: <Color>[
+//         Colors.blueAccent[700],
+//         Colors.indigo[600],
+//         Colors.purple,
+//         Colors.pink[300],
+//       ],
+//     ).createShader(
+//       Rect.fromLTWH(0.0, 0.0, 275.0, 0),
+//     );
+
+//     slides.add(
+//       new Slide(
+//         widgetTitle: RichText(
+//           textAlign: TextAlign.left,
+//           text: TextSpan(
+//             style: TextStyle(
+//               fontSize: 20,
+//               color: Colors.black,
+//             ),
+//             children: <TextSpan>[
+//               TextSpan(
+//                 text: "Welcome To\n\n",
+//                 style: GoogleFonts.calistoga(
+//                   color: Colors.black,
+//                   fontSize: 33,
+//                 ),
+//               ),
+//               TextSpan(
+//                 text: "GRADE GENIUS.",
+//                 style: GoogleFonts.calistoga(
+//                   textStyle: TextStyle(
+//                     shadows: <Shadow>[
+//                       Shadow(
+//                         offset: Offset(7, 5),
+//                         blurRadius: 3.0,
+//                         color: Colors.grey[200],
+//                       ),
+//                     ],
+//                     foreground: Paint()..shader = linearGradient,
+//                     height: .9,
+//                     letterSpacing: 2,
+//                   ),
+//                   color: Colors.black,
+//                   fontSize: 44,
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//         widthImage: 115,
+//         heightImage: 115,
+//         pathImage: "assets/AtomImage.JPG",
+//         widgetDescription: Column(
+//           children: [
+//             Container(
+//               padding: EdgeInsets.only(left: 10, bottom: 10),
+//               alignment: Alignment.centerLeft,
+//               child: Text(
+//                 "SWIFT.",
+//                 style: GoogleFonts.calistoga(
+//                   textStyle: TextStyle(
+//                     shadows: <Shadow>[
+//                       Shadow(
+//                         offset: Offset(7, 5),
+//                         blurRadius: 3.0,
+//                         color: Colors.grey[200],
+//                       ),
+//                     ],
+//                     foreground: Paint()..shader = linearGradient1,
+//                     height: .9,
+//                     letterSpacing: 2,
+//                   ),
+//                   fontSize: 40,
+//                 ),
+//               ),
+//             ),
+//             Container(
+//               alignment: Alignment.center,
+//               child: Text(
+//                 "SMART.",
+//                 style: GoogleFonts.calistoga(
+//                   textStyle: TextStyle(
+//                     shadows: <Shadow>[
+//                       Shadow(
+//                         offset: Offset(7, 5),
+//                         blurRadius: 3.0,
+//                         color: Colors.grey[200],
+//                       ),
+//                     ],
+//                     foreground: Paint()..shader = linearGradient2,
+//                     height: 1.3,
+//                     letterSpacing: 2,
+//                   ),
+//                   color: Colors.black,
+//                   fontSize: 40,
+//                 ),
+//               ),
+//             ),
+//             Container(
+//               padding: EdgeInsets.only(right: 10, top: 10),
+//               alignment: Alignment.centerRight,
+//               child: Text(
+//                 "SIMPLE.",
+//                 style: GoogleFonts.calistoga(
+//                   textStyle: TextStyle(
+//                     shadows: <Shadow>[
+//                       Shadow(
+//                         offset: Offset(7, 5),
+//                         blurRadius: 3.0,
+//                         color: Colors.grey[200],
+//                       ),
+//                     ],
+//                     foreground: Paint()..shader = linearGradient3,
+//                     height: 1.3,
+//                     letterSpacing: 2,
+//                   ),
+//                   color: Colors.black,
+//                   fontSize: 40,
+//                 ),
+//               ),
+//             ),
+//             Container(
+//               padding: EdgeInsets.only(top: 35),
+//               alignment: Alignment.center,
+//               child: Text(
+//                 "HAC Reimagined.",
+//                 style: GoogleFonts.calistoga(
+//                   color: Colors.grey[800],
+//                   fontSize: 27,
+//                 ),
+//               ),
+//             ),
+//           ],
+//         ),
+//         backgroundColor: Colors.white,
+//       ),
+//     );
+//   }
+
+//   void onSkipPress() {
+//     Navigator.push(
+//       context,
+//       MaterialPageRoute(builder: (context) => MyLoginPage()),
+//     );
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return WillPopScope(
+//       onWillPop: _willPopCallback,
+//       child: Scaffold(
+//         backgroundColor: Colors.white,
+//         resizeToAvoidBottomInset: false,
+//         body: Stack(
+//           children: [
+//             IntroSlider(
+//               slides: slides,
+//               onDonePress: this.onSkipPress,
+//               colorDoneBtn: Colors.grey[600],
+//               colorSkipBtn: Colors.grey[600],
+//               nameDoneBtn: "Continue",
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+
 class MyBehavior extends ScrollBehavior {
   @override
   Widget buildViewportChrome(
@@ -59,6 +286,11 @@ class MyLoginPage extends StatefulWidget {
 }
 
 class DataInfo {
+  bool showInfo;
+  bool userBool;
+  bool passBool;
+  String username;
+  String password;
   List dateList;
   String user;
   String studentGrade;
@@ -73,6 +305,11 @@ class DataInfo {
   List newScores;
   List newClasses;
   DataInfo({
+    this.showInfo,
+    this.userBool,
+    this.passBool,
+    this.username,
+    this.password,
     this.dateList,
     this.user,
     this.studentGrade,
@@ -98,7 +335,7 @@ class _LoginPage extends State<MyLoginPage> {
 
   // local Android host url = 'http://10.0.2.2:5000/'
   // app url = 'https://gradegenius.org/'
-  String host = 'http://10.0.2.2:5000/';
+  String host = 'https://gradegenius.org/';
   bool isLoggedIn = false;
   bool gotInfo = false;
   var client = HttpClient();
@@ -109,6 +346,7 @@ class _LoginPage extends State<MyLoginPage> {
   String pass = '';
   bool isError = false;
   bool gradeError = false;
+  bool isWelcome = true;
   String userPassError;
   bool _obscureText = true;
   bool displayLoad = false;
@@ -127,6 +365,9 @@ class _LoginPage extends State<MyLoginPage> {
   List diffScores = [];
   List diffClasses = [];
   String oldReportRun = "";
+  int dropdownValue = 1;
+  bool forgotInfo = false;
+  bool tNc = false;
 
   Future<HttpClientResponse> makeRequest(
       Uri uri, List<Cookie> requestCookies) async {
@@ -233,8 +474,74 @@ class _LoginPage extends State<MyLoginPage> {
     return checkVal;
   }
 
+  getUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String stringValue = prefs.get('username save');
+    return (stringValue.toString());
+  }
+
+  checkUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool checkVal = prefs.containsKey('username save');
+    return checkVal;
+  }
+
+  getPass() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String stringValue = prefs.get('password save');
+    return (stringValue.toString());
+  }
+
+  checkPass() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool checkVal = prefs.containsKey('password save');
+    return checkVal;
+  }
+
+  getUserBool(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool boolVal = prefs.get(name + ' username bool');
+    return boolVal;
+  }
+
+  getPassBool(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool boolVal = prefs.get(name + ' password bool');
+    return boolVal;
+  }
+
+  checkUserBool(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool checkVal = prefs.containsKey(name + ' username bool');
+    return checkVal;
+  }
+
+  checkPassBool(name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool checkVal = prefs.containsKey(name + ' password bool');
+    return checkVal;
+  }
+
+  addUserToSF(username) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('username save', username);
+  }
+
+  addPassToSF(password) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('password save', password);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+    SystemChrome.setEnabledSystemUIOverlays(
+        [SystemUiOverlay.top, SystemUiOverlay.bottom]);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.grey.withOpacity(.6),
+      statusBarColor: Colors.grey.withOpacity(.6),
+    ));
     void _toggle() {
       setState(() {
         _obscureText = !_obscureText;
@@ -242,6 +549,13 @@ class _LoginPage extends State<MyLoginPage> {
     }
 
     differenceMethod() async {
+      List oldAssignments = [];
+      List oldScores = [];
+      List oldClasses = [];
+      List currAssignments = [];
+      List currScores = [];
+      List currClasses = [];
+
       String studentName = dataLoginPage.studentName;
       String currentReportRun = dataLoginPage.reportRun;
       try {
@@ -257,77 +571,113 @@ class _LoginPage extends State<MyLoginPage> {
               (json.encode(dataLoginPage.classAverages).toString()),
               studentName);
         } else {
-          currentClassString =
-              json.encode(dataLoginPage.classAssignments).toString();
-          oldClassString = await getStringValuesSF(studentName);
-          currentC = json.encode(dataLoginPage.classAverages).toString();
-          oldC = await getStringValuesSF2(studentName);
           oldReportRun = await getRun(studentName);
-          await addRun(currentReportRun, studentName);
-          await addStringToSF2(
-              (json.encode(dataLoginPage.classAverages).toString()),
-              studentName);
-          await addStringToSF(
-              (json.encode(dataLoginPage.classAssignments).toString()),
-              studentName);
+          if (currentReportRun == oldReportRun) {
+            currentClassString =
+                json.encode(dataLoginPage.classAssignments).toString();
+            oldClassString = await getStringValuesSF(studentName);
+            currentC = json.encode(dataLoginPage.classAverages).toString();
+            oldC = await getStringValuesSF2(studentName);
+            await addRun(currentReportRun, studentName);
+            await addStringToSF2(
+                (json.encode(dataLoginPage.classAverages).toString()),
+                studentName);
+            await addStringToSF(
+                (json.encode(dataLoginPage.classAssignments).toString()),
+                studentName);
+
+            oldMap = await json.decode(oldClassString);
+            currentMap = await json.decode(currentClassString);
+            oldClassesMap = await json.decode(oldC);
+            currentClassesMap = await json.decode(currentC);
+
+            for (int index = 0;
+                index < currentClassesMap['Class Name'].length;
+                index++) {
+              String indexName = "Class " + (index + 1).toString();
+              oldAssignments.add(oldMap[indexName]['Assignments']);
+              oldScores.add(oldMap[indexName]['Score']);
+              oldClasses.add(oldClassesMap['Class Name'][index]);
+              currAssignments.add(currentMap[indexName]['Assignments']);
+              currScores.add(currentMap[indexName]['Score']);
+              currClasses.add(currentClassesMap['Class Name'][index]);
+            }
+          } else {
+            currentClassString =
+                json.encode(dataLoginPage.classAssignments).toString();
+            currentC = json.encode(dataLoginPage.classAverages).toString();
+            await addRun(currentReportRun, studentName);
+            await addStringToSF2(
+                (json.encode(dataLoginPage.classAverages).toString()),
+                studentName);
+            await addStringToSF(
+                (json.encode(dataLoginPage.classAssignments).toString()),
+                studentName);
+
+            currentMap = await json.decode(currentClassString);
+            currentClassesMap = await json.decode(currentC);
+
+            for (int index = 0;
+                index < currentClassesMap['Class Name'].length;
+                index++) {
+              String indexName = "Class " + (index + 1).toString();
+              currAssignments.add(currentMap[indexName]['Assignments']);
+              currScores.add(currentMap[indexName]['Score']);
+              currClasses.add(currentClassesMap['Class Name'][index]);
+            }
+
+            oldAssignments = [];
+            oldScores = [];
+            oldClasses = [];
+
+            for (int index = 0;
+                index < currentClassesMap['Class Name'].length;
+                index++) {
+              oldAssignments.add([]);
+              oldScores.add([]);
+              oldClasses.add("");
+            }
+          }
         }
-
-        if (currentReportRun == oldReportRun) {
-          oldMap = await json.decode(oldClassString);
-          currentMap = await json.decode(currentClassString);
-          oldClassesMap = await json.decode(oldC);
-          currentClassesMap = await json.decode(currentC);
-
-          List oldAssignments = [];
-          List oldScores = [];
-          List oldClasses = [];
-          List currAssignments = [];
-          List currScores = [];
-          List currClasses = [];
-          for (int index = 0;
-              index < currentClassesMap['Class Name'].length;
-              index++) {
-            String indexName = "Class " + (index + 1).toString();
-            oldAssignments.add(oldMap[indexName]['Assignments']);
-            oldScores.add(oldMap[indexName]['Score']);
-            oldClasses.add(oldClassesMap['Class Name'][index]);
-            currAssignments.add(currentMap[indexName]['Assignments']);
-            currScores.add(currentMap[indexName]['Score']);
-            currClasses.add(currentClassesMap['Class Name'][index]);
-          }
-
-          int value = 0;
-          for (int index = 0; index < currAssignments.length; index++) {
-            value = 0;
-            currAssignments[index].forEach((element) {
-              if (!oldAssignments[index].contains(element)) {
-                diffAssignments.add(element);
-                diffScores.add(currScores[index][value]);
-                diffClasses.add(currClasses[index]);
-              }
-              value++;
-            });
-          }
-        } else {
-          diffAssignments = [];
-          diffScores = [];
-          diffClasses = [];
+        int value = 0;
+        for (int index = 0; index < currAssignments.length; index++) {
+          value = 0;
+          currAssignments[index].forEach((element) {
+            if (!oldAssignments[index].contains(element)) {
+              diffAssignments.add(element);
+              diffScores.add(currScores[index][value]);
+              diffClasses.add(currClasses[index]);
+            }
+            value++;
+          });
         }
       } on RangeError {
         setState(() {
           error = true;
+          diffAssignments = [];
+          diffScores = [];
+          diffClasses = [];
         });
       } on NoSuchMethodError {
         setState(() {
           error = true;
+          diffAssignments = [];
+          diffScores = [];
+          diffClasses = [];
         });
       } on FormatException {
         setState(() {
           error = true;
+          diffAssignments = [];
+          diffScores = [];
+          diffClasses = [];
         });
       } on Error {
         setState(() {
           error = true;
+          diffAssignments = [];
+          diffScores = [];
+          diffClasses = [];
         });
       }
     }
@@ -336,8 +686,8 @@ class _LoginPage extends State<MyLoginPage> {
       loginButton = Container(
         child: InkWell(
           child: Container(
-            width: 300,
-            height: 50,
+            width: width / 1.5,
+            height: height / 16,
             alignment: Alignment.center,
             decoration: ShapeDecoration(
               shape: RoundedRectangleBorder(
@@ -353,12 +703,12 @@ class _LoginPage extends State<MyLoginPage> {
                 end: Alignment.bottomRight,
               ),
             ),
-            child: Text(
+            child: AutoSizeText(
               'LOGIN',
+              minFontSize: 18,
               style: GoogleFonts.quicksand(
                 textStyle: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 21.5,
                   color: Colors.white,
                 ),
               ),
@@ -422,6 +772,24 @@ class _LoginPage extends State<MyLoginPage> {
                   myCookies: myCookies,
                 );
                 await differenceMethod();
+                bool userBoolMain = false;
+                bool passBoolMain = false;
+                if (await checkUserBool(infoMap['Name']) == true) {
+                  userBoolMain = await getUserBool(infoMap['Name']);
+                }
+                if (await checkPassBool(infoMap['Name']) == true) {
+                  passBoolMain = await getPassBool(infoMap['Name']);
+                }
+                if (userBoolMain == false) {
+                  await addUserToSF("");
+                } else {
+                  await addUserToSF(user);
+                }
+                if (passBoolMain == false) {
+                  await addPassToSF("");
+                } else {
+                  await addPassToSF(pass);
+                }
                 final dataLoginPage2 = DataInfo(
                   dateList: dates,
                   user: user,
@@ -436,6 +804,11 @@ class _LoginPage extends State<MyLoginPage> {
                   newAssignments: diffAssignments,
                   newScores: diffScores,
                   newClasses: diffClasses,
+                  username: user,
+                  password: pass,
+                  userBool: userBoolMain,
+                  passBool: passBoolMain,
+                  showInfo: true,
                 );
                 Navigator.push(
                   context,
@@ -494,8 +867,8 @@ class _LoginPage extends State<MyLoginPage> {
                     child: Container(
                       decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10.0)),
-                      width: 300.0,
-                      height: 200.0,
+                      width: width,
+                      height: height,
                       alignment: AlignmentDirectional.center,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -503,20 +876,20 @@ class _LoginPage extends State<MyLoginPage> {
                         children: <Widget>[
                           Center(
                             child: SizedBox(
-                              height: 50.0,
-                              width: 50.0,
+                              height: height / 15,
+                              width: width / 8,
                               child: SpinKitFadingCircle(
                                 color: Colors.grey[600],
                               ),
                             ),
                           ),
                           Container(
-                            margin: const EdgeInsets.only(top: 25.0),
+                            margin: EdgeInsets.only(top: width / 29),
                             child: Center(
-                              child: Text(
+                              child: AutoSizeText(
                                 'Loading Grades...',
+                                minFontSize: 22,
                                 style: GoogleFonts.patrickHand(
-                                  fontSize: 25,
                                   color: Colors.grey[700],
                                 ),
                               ),
@@ -532,45 +905,147 @@ class _LoginPage extends State<MyLoginPage> {
           )
         : new Container();
 
+    var showTerms = tNc
+        ? new WillPopScope(
+            onWillPop: _willPopCallback,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
+                  ),
+                ),
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
+                      ),
+                    ),
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 4,
+                        alignment: Alignment.center,
+                        child: AutoSizeText(
+                          'Please visit the app/play store to view the Terms and Conditions (Terms of Service).',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          tNc = false;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        : new Container();
+
+    var forgotContainer = forgotInfo
+        ? new WillPopScope(
+            onWillPop: _willPopCallback,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
+                  ),
+                ),
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
+                      ),
+                    ),
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 5,
+                        alignment: Alignment.center,
+                        child: AutoSizeText(
+                          'If you have forgotten the credentials to your HAC account, please visit the HAC website in order to possibly reset your username and/or password.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          forgotInfo = false;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        : new Container();
+
     var serverDown = gradeError
         ? new WillPopScope(
             onWillPop: _willPopCallback,
-            child: Container(
-              alignment: AlignmentDirectional.center,
-              decoration: BoxDecoration(
-                color: Colors.white70,
-              ),
-              child: AlertDialog(
-                title: Text(
-                  '404 Data Error',
-                  style: GoogleFonts.roboto(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
                   ),
                 ),
-                content: Text(
-                  'Grade Genius could not load the data. The HAC servers are probably down. Please try again later.',
-                  style: GoogleFonts.roboto(
-                    fontSize: 16,
-                  ),
-                ),
-                actions: <Widget>[
-                  FlatButton(
-                    child: Text(
-                      'OK',
-                      style: GoogleFonts.roboto(
-                        fontSize: 19.5,
-                        fontWeight: FontWeight.bold,
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
                       ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        gradeError = false;
-                      });
-                    },
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 5,
+                        alignment: Alignment.center,
+                        child: AutoSizeText(
+                          'Grade Genius could not load the data. The HAC servers are probably down. Please try again later.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          displayLoad = false;
+                          gradeError = false;
+                        });
+                      },
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           )
         : new Container();
@@ -609,8 +1084,9 @@ class _LoginPage extends State<MyLoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Container(
+                  padding: EdgeInsets.only(top: 10),
                   alignment: Alignment.center,
-                  child: Text(
+                  child: AutoSizeText(
                     'GRADE',
                     style: GoogleFonts.galindo(
                       textStyle: TextStyle(
@@ -622,8 +1098,8 @@ class _LoginPage extends State<MyLoginPage> {
                           ),
                         ],
                         foreground: Paint()..shader = linearGradient1,
-                        fontSize: 40.0,
-                        height: .7,
+                        fontSize: height / 21,
+                        height: 1,
                         letterSpacing: 2,
                       ),
                     ),
@@ -631,8 +1107,8 @@ class _LoginPage extends State<MyLoginPage> {
                 ),
                 Image.asset(
                   'assets/AtomImage.JPG',
-                  width: 165,
-                  height: 165,
+                  width: width / 2.4,
+                  height: height / 4.8,
                 ),
                 Container(
                   alignment: Alignment.center,
@@ -648,18 +1124,18 @@ class _LoginPage extends State<MyLoginPage> {
                           ),
                         ],
                         foreground: Paint()..shader = linearGradient2,
-                        fontSize: 40.0,
-                        height: 1,
+                        fontSize: height / 21,
+                        height: 1.2,
                         letterSpacing: 2,
                       ),
                     ),
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.only(top: 25),
+                  padding: EdgeInsets.all(height / 140),
                 ),
                 Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(20.0),
                   child: Align(
                     alignment: Alignment.center,
                     child: Column(
@@ -680,12 +1156,12 @@ class _LoginPage extends State<MyLoginPage> {
                               decoration: new InputDecoration(
                                 border: InputBorder.none,
                                 hintText: 'Username',
-                                contentPadding: EdgeInsets.all(30.0),
+                                contentPadding: EdgeInsets.all(25.0),
                               ),
                               style: GoogleFonts.scada(
                                 textStyle: TextStyle(
                                   letterSpacing: 1.4,
-                                  fontSize: 22.0,
+                                  fontSize: 18,
                                   color: Colors.black,
                                 ),
                               ),
@@ -693,7 +1169,7 @@ class _LoginPage extends State<MyLoginPage> {
                           ),
                         ),
                         Padding(
-                          padding: EdgeInsets.all(10.0),
+                          padding: EdgeInsets.all(7.0),
                         ),
                         Material(
                           elevation: 25,
@@ -712,13 +1188,13 @@ class _LoginPage extends State<MyLoginPage> {
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
                                     hintText: 'Password',
-                                    contentPadding: EdgeInsets.all(30.0),
+                                    contentPadding: EdgeInsets.all(25.0),
                                   ),
                                   obscureText: _obscureText,
                                   style: GoogleFonts.scada(
                                     textStyle: TextStyle(
                                       letterSpacing: 1.4,
-                                      fontSize: 22.0,
+                                      fontSize: 18,
                                       color: Colors.black,
                                     ),
                                   ),
@@ -741,29 +1217,88 @@ class _LoginPage extends State<MyLoginPage> {
                     ),
                   ),
                 ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    InkWell(
+                      child: AutoSizeText(
+                        "Forgot Credentials",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.heebo(
+                          textStyle: TextStyle(
+                            decoration: TextDecoration.underline,
+                            fontSize: 15,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                      ),
+                      hoverColor: Colors.white70,
+                      onTap: () {
+                        setState(() {
+                          forgotInfo = true;
+                        });
+                      },
+                    ),
+                    InkWell(
+                      child: AutoSizeText(
+                        "Autofill",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.heebo(
+                          textStyle: TextStyle(
+                            decoration: TextDecoration.underline,
+                            fontSize: 15,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                      ),
+                      hoverColor: Colors.white70,
+                      onTap: () async {
+                        bool userThere = await checkUser();
+                        bool passThere = await checkPass();
+                        if (userThere == true) {
+                          String myStr = await getUser();
+                          setState(() {
+                            username.text = myStr;
+                          });
+                        }
+                        if (passThere == true) {
+                          String myStr = await getPass();
+                          setState(() {
+                            password.text = myStr;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: EdgeInsets.all(7),
+                ),
                 Container(
-                  child: Text(
+                  padding: EdgeInsets.only(left: 10, right: 10),
+                  child: AutoSizeText(
                     errorMessage,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.heebo(
                       textStyle: TextStyle(
-                        fontSize: 19.0,
+                        fontSize: 15,
                         color: Colors.red[600],
                       ),
                     ),
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: EdgeInsets.all(10),
                 ),
                 loginButton,
                 Padding(
-                  padding: EdgeInsets.all(10),
+                  padding: EdgeInsets.all(4),
                 ),
                 InkWell(
                   child: Container(
-                    width: 300,
-                    height: 50,
+                    width: width / 1.5,
+                    height: height / 16,
                     alignment: Alignment.center,
                     decoration: ShapeDecoration(
                       shape: RoundedRectangleBorder(
@@ -779,20 +1314,32 @@ class _LoginPage extends State<MyLoginPage> {
                         end: Alignment.bottomRight,
                       ),
                     ),
-                    child: Text(
+                    child: AutoSizeText(
                       'Terms of Service',
-                      style: GoogleFonts.oxygen(
+                      minFontSize: 18,
+                      style: GoogleFonts.quicksand(
                         textStyle: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 21.5,
                           color: Colors.white,
                         ),
                       ),
                     ),
                   ),
-                  onTap: () {},
+                  onTap: () {
+                    setState(() {
+                      tNc = true;
+                    });
+                  },
                 ),
               ],
+            ),
+            Align(
+              child: showTerms,
+              alignment: FractionalOffset.center,
+            ),
+            Align(
+              child: forgotContainer,
+              alignment: FractionalOffset.center,
             ),
             Align(
               child: loadingIndicator,
@@ -839,7 +1386,9 @@ class WelcomePage extends State<MyWelcomePage> {
           dataExtras: widget.dataHomePage,
         );
       case 3:
-        return SettingsApp();
+        return MySettingsApp(
+          settingsData: widget.dataHomePage,
+        );
         break;
       default:
         return MyHomeApp(
@@ -850,6 +1399,13 @@ class WelcomePage extends State<MyWelcomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+    SystemChrome.setEnabledSystemUIOverlays(
+        [SystemUiOverlay.top, SystemUiOverlay.bottom]);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.grey.withOpacity(.6),
+      statusBarColor: Colors.grey.withOpacity(.6),
+    ));
     return WillPopScope(
       onWillPop: _willPopCallback,
       child: Scaffold(
@@ -857,7 +1413,7 @@ class WelcomePage extends State<MyWelcomePage> {
         bottomNavigationBar: BottomNavyBar(
           selectedIndex: _selectedTabIndex,
           showElevation: true,
-          containerHeight: 63.0,
+          containerHeight: height / 12.5,
           onItemSelected: (index) => setState(() {
             _selectedTabIndex = index;
           }),
@@ -868,7 +1424,7 @@ class WelcomePage extends State<MyWelcomePage> {
                 'Home',
                 style: GoogleFonts.oswald(
                   textStyle: TextStyle(
-                      fontSize: 20.0,
+                      fontSize: 18.0,
                       height: 1.2,
                       color: Colors.cyanAccent[700]),
                 ),
@@ -882,7 +1438,10 @@ class WelcomePage extends State<MyWelcomePage> {
                 'Grades',
                 style: GoogleFonts.oswald(
                   textStyle: TextStyle(
-                      fontSize: 20.0, height: 1.2, color: Colors.red[400]),
+                    fontSize: 18.0,
+                    height: 1.2,
+                    color: Colors.red[400],
+                  ),
                 ),
               ),
               activeColor: Colors.red[400],
@@ -894,7 +1453,10 @@ class WelcomePage extends State<MyWelcomePage> {
                 'Extra',
                 style: GoogleFonts.oswald(
                   textStyle: TextStyle(
-                      fontSize: 20.0, height: 1.2, color: Colors.amber),
+                    fontSize: 18.0,
+                    height: 1.2,
+                    color: Colors.amber,
+                  ),
                 ),
               ),
               activeColor: Colors.amber,
@@ -906,7 +1468,10 @@ class WelcomePage extends State<MyWelcomePage> {
                 'Settings',
                 style: GoogleFonts.oswald(
                   textStyle: TextStyle(
-                      fontSize: 20.0, height: 1.2, color: Colors.blueGrey[800]),
+                    fontSize: 18.0,
+                    height: 1.2,
+                    color: Colors.blueGrey[800],
+                  ),
                 ),
               ),
               activeColor: Colors.blueGrey[800],

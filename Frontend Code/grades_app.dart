@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:page_transition/page_transition.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
 class MyGradePage extends StatefulWidget {
   final DataInfo dataGrades;
@@ -22,7 +22,9 @@ class GradePage extends State<MyGradePage> {
     return false;
   }
 
-  String host = 'http://10.0.2.2:5000/';
+  // local Android host url = 'http://10.0.2.2:5000/'
+  // app url = 'https://gradegenius.org/'
+  String host = 'https://gradegenius.org/';
   var client = HttpClient();
   var gradesList;
   bool _load = false;
@@ -99,64 +101,97 @@ class GradePage extends State<MyGradePage> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+    SystemChrome.setEnabledSystemUIOverlays(
+        [SystemUiOverlay.top, SystemUiOverlay.bottom]);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.grey.withOpacity(.6),
+      statusBarColor: Colors.grey.withOpacity(.6),
+    ));
     final classNames = widget.dataGrades.classAverages['Class Name'];
     final classGrades = widget.dataGrades.classAverages['Class Average'];
     String studentGrade = widget.dataGrades.studentGrade;
     var reportVal = widget.dataGrades.reportRun;
     int reportRun = int.parse(reportVal);
     var color;
+    bool errorMsg = false;
     List<Color> colorList = [
-      Colors.red[200],
-      Colors.red[200],
-      Colors.red[200],
-      Colors.red[200]
+      Colors.red[50],
+      Colors.red[50],
+      Colors.red[50],
+      Colors.red[50]
     ];
 
     for (int i = 0; i < colorList.length; i++) {
       if (i == (reportRun - 1)) {
-        colorList[i] = Colors.red[400];
+        colorList[i] = Colors.redAccent[100];
       }
     }
+
+    if (classNames.length == 0) {
+      errorMsg = true;
+    }
+
+    var noData = errorMsg
+        ? new Container(
+            alignment: Alignment.center,
+            padding: EdgeInsets.only(top: width / 13, left: 17, right: 17),
+            child: AutoSizeText(
+              "Either the session is currently inactive or the grades are blank in HAC.\n\nPlease logout and try again.",
+              minFontSize: 19,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.roboto(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          )
+        : new Container();
 
     isError = error
         ? new WillPopScope(
             onWillPop: _willPopCallback,
-            child: Container(
-              alignment: AlignmentDirectional.center,
-              decoration: BoxDecoration(
-                color: Colors.white70,
-              ),
-              child: AlertDialog(
-                title: Text(
-                  '404 Data Error',
-                  style: GoogleFonts.roboto(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
                   ),
                 ),
-                content: Text(
-                  'Grade Genius could not open the selected Marking Period data. Either the HAC servers are down or the Marking Period has not been updated yet. Please try again later.',
-                  style: GoogleFonts.roboto(
-                    fontSize: 16,
-                  ),
-                ),
-                actions: <Widget>[
-                  FlatButton(
-                    child: Text(
-                      'OK',
-                      style: GoogleFonts.roboto(
-                        fontSize: 19.5,
-                        fontWeight: FontWeight.bold,
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
                       ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        error = false;
-                      });
-                    },
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 2,
+                        alignment: Alignment.center,
+                        child: AutoSizeText(
+                          'Grade Genius could not open the selected Marking Period data. Either the HAC servers are down or the Marking Period has not been updated yet. Please try again later.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          error = false;
+                        });
+                      },
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           )
         : new Container();
@@ -174,9 +209,10 @@ class GradePage extends State<MyGradePage> {
                     ),
                     child: Container(
                       decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10.0)),
-                      width: 300.0,
-                      height: 200.0,
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      width: width / 1.2,
+                      height: height / 3.6,
                       alignment: AlignmentDirectional.center,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -184,20 +220,20 @@ class GradePage extends State<MyGradePage> {
                         children: <Widget>[
                           Center(
                             child: SizedBox(
-                              height: 50.0,
-                              width: 50.0,
+                              height: height / 15,
+                              width: width / 8,
                               child: SpinKitFadingCircle(
                                 color: Colors.grey[600],
                               ),
                             ),
                           ),
                           Container(
-                            margin: const EdgeInsets.only(top: 25.0),
+                            margin: EdgeInsets.only(top: 25.0),
                             child: Center(
-                              child: Text(
+                              child: AutoSizeText(
                                 'Loading Grades...',
+                                minFontSize: 22,
                                 style: GoogleFonts.patrickHand(
-                                  fontSize: 25,
                                   color: Colors.grey[700],
                                 ),
                               ),
@@ -217,276 +253,373 @@ class GradePage extends State<MyGradePage> {
       onWillPop: _willPopCallback,
       child: Scaffold(
         resizeToAvoidBottomInset: false,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(60),
-          child: AppBar(
-            iconTheme: IconThemeData(
-              color: Colors.white,
-            ),
-            automaticallyImplyLeading: false,
-            centerTitle: true,
-            title: Text(
-              'Grades',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.red[400],
-          ),
-        ),
         body: Stack(
           children: <Widget>[
             Column(
               children: <Widget>[
                 Container(
-                  color: Colors.grey[50],
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
+                  decoration: BoxDecoration(
+                    color: Colors.red[400],
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(10),
+                      bottomRight: Radius.circular(10),
+                    ),
+                    border: Border.all(
+                      color: Colors.red[900],
+                      width: 1.4,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
                       Padding(
-                        padding: EdgeInsets.all(15),
-                        child: FloatingActionButton.extended(
-                          heroTag: null,
-                          label: Text('1'),
-                          backgroundColor: colorList[0],
-                          onPressed: () async {
-                            gradesList = await mainInfo(
-                                (host + 'run?number=1').toString());
-                            var currMap;
-                            var reportV;
-                            setState(
-                              () {
-                                if (error != true) {
-                                  currMap = json.decode(gradesList);
-                                  Map averagesMap = currMap['Averages'];
-                                  Map assignmentsMap = currMap['Grades'];
-                                  reportV = currMap['Report Run'];
-                                  widget.dataGrades.classAverages = averagesMap;
-                                  widget.dataGrades.classAssignments =
-                                      assignmentsMap;
-                                  widget.dataGrades.reportRun = reportV;
-                                }
-                              },
-                            );
-                          },
+                        padding: EdgeInsets.only(top: 30, bottom: 10),
+                      ),
+                      Container(
+                        alignment: Alignment.center,
+                        width: width,
+                        height: height / 13,
+                        decoration: BoxDecoration(
+                          color: Colors.red[400],
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(23),
+                          ),
+                          border: Border.all(
+                            color: Colors.red[400],
+                            width: 1.4,
+                          ),
+                        ),
+                        child: AutoSizeText(
+                          'Grades',
+                          minFontSize: 30,
+                          style: GoogleFonts.signikaNegative(
+                            letterSpacing: 0.9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      Divider(
+                        indent: width / 27,
+                        endIndent: width / 27,
+                        thickness: 2.8,
+                        color: Colors.white70,
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 6),
+                      ),
+                      Container(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: <Widget>[
+                            Padding(
+                              padding: EdgeInsets.all(1),
+                              child: FloatingActionButton.extended(
+                                heroTag: null,
+                                label: AutoSizeText(
+                                  'MP1',
+                                  minFontSize: 9,
+                                  style: GoogleFonts.signikaNegative(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                backgroundColor: colorList[0],
+                                onPressed: () async {
+                                  gradesList = await mainInfo(
+                                      (host + 'run?number=1').toString());
+                                  var currMap;
+                                  var reportV;
+                                  setState(
+                                    () {
+                                      if (error != true) {
+                                        currMap = json.decode(gradesList);
+                                        Map averagesMap = currMap['Averages'];
+                                        Map assignmentsMap = currMap['Grades'];
+                                        reportV = currMap['Report Run'];
+                                        widget.dataGrades.dateList =
+                                            currMap["Date List"];
+                                        widget.dataGrades.classAverages =
+                                            averagesMap;
+                                        widget.dataGrades.classAssignments =
+                                            assignmentsMap;
+                                        widget.dataGrades.reportRun = reportV;
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.all(1),
+                              child: FloatingActionButton.extended(
+                                heroTag: null,
+                                label: AutoSizeText(
+                                  'MP2',
+                                  minFontSize: 9,
+                                  style: GoogleFonts.signikaNegative(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                backgroundColor: colorList[1],
+                                onPressed: () async {
+                                  gradesList = await mainInfo(
+                                      (host + 'run?number=2').toString());
+                                  var currMap;
+                                  var reportV;
+                                  setState(
+                                    () {
+                                      if (error != true) {
+                                        currMap = json.decode(gradesList);
+                                        Map averagesMap = currMap['Averages'];
+                                        Map assignmentsMap = currMap['Grades'];
+                                        reportV = currMap['Report Run'];
+                                        widget.dataGrades.dateList =
+                                            currMap["Date List"];
+                                        widget.dataGrades.classAverages =
+                                            averagesMap;
+                                        widget.dataGrades.classAssignments =
+                                            assignmentsMap;
+                                        widget.dataGrades.reportRun = reportV;
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.all(1),
+                              child: FloatingActionButton.extended(
+                                heroTag: null,
+                                label: AutoSizeText(
+                                  'MP3',
+                                  minFontSize: 9,
+                                  style: GoogleFonts.signikaNegative(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                backgroundColor: colorList[2],
+                                onPressed: () async {
+                                  gradesList = await mainInfo(
+                                      (host + 'run?number=3').toString());
+                                  var currMap;
+                                  var reportV;
+                                  setState(
+                                    () {
+                                      if (error != true) {
+                                        currMap = json.decode(gradesList);
+                                        Map averagesMap = currMap['Averages'];
+                                        Map assignmentsMap = currMap['Grades'];
+                                        reportV = currMap['Report Run'];
+                                        widget.dataGrades.dateList =
+                                            currMap["Date List"];
+                                        widget.dataGrades.classAverages =
+                                            averagesMap;
+                                        widget.dataGrades.classAssignments =
+                                            assignmentsMap;
+                                        widget.dataGrades.reportRun = reportV;
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.all(1),
+                              child: FloatingActionButton.extended(
+                                heroTag: null,
+                                label: AutoSizeText(
+                                  'MP4',
+                                  minFontSize: 9,
+                                  style: GoogleFonts.signikaNegative(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                backgroundColor: colorList[3],
+                                onPressed: () async {
+                                  gradesList = await mainInfo(
+                                      (host + 'run?number=4').toString());
+                                  var currMap;
+                                  var reportV;
+                                  setState(
+                                    () {
+                                      if (error != true) {
+                                        currMap = json.decode(gradesList);
+                                        Map averagesMap = currMap['Averages'];
+                                        Map assignmentsMap = currMap['Grades'];
+                                        reportV = currMap['Report Run'];
+                                        widget.dataGrades.dateList =
+                                            currMap["Date List"];
+                                        widget.dataGrades.classAverages =
+                                            averagesMap;
+                                        widget.dataGrades.classAssignments =
+                                            assignmentsMap;
+                                        widget.dataGrades.reportRun = reportV;
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.all(15),
-                        child: FloatingActionButton.extended(
-                          heroTag: null,
-                          label: Text('2'),
-                          backgroundColor: colorList[1],
-                          onPressed: () async {
-                            gradesList = await mainInfo(
-                                (host + 'run?number=2').toString());
-                            var currMap;
-                            var reportV;
-                            setState(
-                              () {
-                                if (error != true) {
-                                  currMap = json.decode(gradesList);
-                                  Map averagesMap = currMap['Averages'];
-                                  Map assignmentsMap = currMap['Grades'];
-                                  reportV = currMap['Report Run'];
-                                  widget.dataGrades.classAverages = averagesMap;
-                                  widget.dataGrades.classAssignments =
-                                      assignmentsMap;
-                                  widget.dataGrades.reportRun = reportV;
-                                }
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(15),
-                        child: FloatingActionButton.extended(
-                          heroTag: null,
-                          label: Text('3'),
-                          backgroundColor: colorList[2],
-                          onPressed: () async {
-                            gradesList = await mainInfo(
-                                (host + 'run?number=3').toString());
-                            var currMap;
-                            var reportV;
-                            setState(
-                              () {
-                                if (error != true) {
-                                  currMap = json.decode(gradesList);
-                                  Map averagesMap = currMap['Averages'];
-                                  Map assignmentsMap = currMap['Grades'];
-                                  reportV = currMap['Report Run'];
-                                  widget.dataGrades.classAverages = averagesMap;
-                                  widget.dataGrades.classAssignments =
-                                      assignmentsMap;
-                                  widget.dataGrades.reportRun = reportV;
-                                }
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(15),
-                        child: FloatingActionButton.extended(
-                          heroTag: null,
-                          label: Text('4'),
-                          backgroundColor: colorList[3],
-                          onPressed: () async {
-                            gradesList = await mainInfo(
-                                (host + 'run?number=4').toString());
-                            var currMap;
-                            var reportV;
-                            setState(
-                              () {
-                                if (error != true) {
-                                  currMap = json.decode(gradesList);
-                                  Map averagesMap = currMap['Averages'];
-                                  Map assignmentsMap = currMap['Grades'];
-                                  reportV = currMap['Report Run'];
-                                  widget.dataGrades.classAverages = averagesMap;
-                                  widget.dataGrades.classAssignments =
-                                      assignmentsMap;
-                                  widget.dataGrades.reportRun = reportV;
-                                }
-                              },
-                            );
-                          },
-                        ),
+                        padding: EdgeInsets.all(8),
                       ),
                     ],
                   ),
                 ),
+                Container(
+                  color: Colors.transparent,
+                  padding: EdgeInsets.only(bottom: 1),
+                ),
+                noData,
                 Expanded(
-                  child: ListView.builder(
-                    itemExtent: 95,
-                    itemCount: classNames.length,
-                    itemBuilder: (context, index) {
-                      var text;
-                      var colorText = Colors.white;
-                      var fontSz = 19.0;
-                      text = classGrades[index];
-                      var gradeLength = widget.dataGrades.classAssignments[
-                          'Class ' + (index + 1).toString()]["Assignments"];
-                      if (classGrades[index] == '' && gradeLength.length == 0) {
-                        text = 'N/A ';
-                        colorText = Colors.black;
-                        fontSz = 21.0;
-                      }
-                      color = getColor(classGrades[index]);
-                      return Container(
-                        padding: EdgeInsets.only(
-                            bottom: 6.0, top: 6.0, left: 3.0, right: 3.0),
-                        child: InkWell(
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(
-                                color: Colors.grey[700],
-                                width: 2.6,
-                              ),
-                              borderRadius: new BorderRadius.all(
-                                Radius.circular(15),
-                              ),
-                            ),
-                            child: Center(
-                              child: ListTile(
-                                title: Container(
-                                  width: 270,
-                                  child: AutoSizeText(
-                                    classNames[index],
-                                    overflow: TextOverflow.ellipsis,
-                                    minFontSize: 20,
-                                    maxLines: 1,
-                                    style: GoogleFonts.signikaNegative(
-                                      letterSpacing: 0.9,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey[850],
-                                    ),
-                                  ),
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: true,
+                    child: ListView.builder(
+                      itemExtent: height / 8.5,
+                      itemCount: classNames.length,
+                      itemBuilder: (context, index) {
+                        var text;
+                        var colorText = Colors.white;
+                        var fontSz = 17.0;
+                        text = classGrades[index];
+                        var gradeLength = widget.dataGrades.classAssignments[
+                            'Class ' + (index + 1).toString()]["Assignments"];
+                        if (classGrades[index] == '' &&
+                            gradeLength.length == 0) {
+                          text = 'N/A ';
+                          colorText = Colors.black;
+                          fontSz = 17.0;
+                        } else if (classGrades[index] == '' &&
+                            gradeLength.length != 0) {
+                          text = '  ';
+                          colorText = Colors.black;
+                          fontSz = 17.0;
+                        }
+                        color = getColor(classGrades[index]);
+                        return Container(
+                          padding: EdgeInsets.only(
+                              bottom: 6.0, top: 6.0, left: 3.0, right: 3.0),
+                          child: InkWell(
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(
+                                  color: Colors.grey[700],
+                                  width: 2.6,
                                 ),
-                                trailing: Container(
-                                  width: 85,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: color.withOpacity(0.83),
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(20),
-                                    ),
-                                    border: Border.all(
-                                      color: Colors.grey,
-                                      width: 1.4,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: <Widget>[
-                                      AutoSizeText(
-                                        text.substring(0, text.length - 1),
-                                        maxLines: 1,
-                                        minFontSize: 21,
-                                        style: GoogleFonts.rambla(
-                                          letterSpacing: 1.1,
-                                          fontSize: fontSz,
-                                          fontWeight: FontWeight.bold,
-                                          color: colorText,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                borderRadius: new BorderRadius.all(
+                                  Radius.circular(15),
                                 ),
-                                onTap: () {
-                                  var indexInfo =
-                                      widget.dataGrades.classAssignments[
-                                              'Class ' + (index + 1).toString()]
-                                          ["Assignments"];
-                                  Map infoDict = {};
-                                  if (indexInfo.length != 0) {
-                                    Map classInfo = {
-                                      'Name': classNames[index],
-                                      'Grade': classGrades[index]
-                                    };
-                                    infoDict.addAll(
-                                        widget.dataGrades.classAssignments[
-                                            'Class ' + (index + 1).toString()]);
-                                    infoDict.addAll(classInfo);
-                                    infoDict
-                                        .addAll({"Std Grade": studentGrade});
-                                    infoDict.addAll({
-                                      "Date List":
-                                          widget.dataGrades.dateList[index]
-                                    });
-                                    infoDict.addAll({
-                                      "New Assignments":
-                                          widget.dataGrades.newAssignments
-                                    });
-                                    infoDict.addAll({
-                                      "New Scores": widget.dataGrades.newScores
-                                    });
-                                    infoDict.addAll({
-                                      "New Classes":
-                                          widget.dataGrades.newClasses
-                                    });
-                                    Navigator.push(
-                                      context,
-                                      PageTransition(
-                                        curve: Curves.linear,
-                                        type: PageTransitionType.downToUp,
-                                        child: MyAssignmentsPage(
-                                          dataGradePage: infoDict,
-                                        ),
+                              ),
+                              child: Center(
+                                child: ListTile(
+                                  title: Container(
+                                    width: width / 1.3,
+                                    child: AutoSizeText(
+                                      classNames[index],
+                                      overflow: TextOverflow.ellipsis,
+                                      minFontSize: 16,
+                                      maxLines: 1,
+                                      style: GoogleFonts.signikaNegative(
+                                        letterSpacing: 1,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey[850],
                                       ),
-                                    );
-                                  }
-                                },
+                                    ),
+                                  ),
+                                  trailing: Container(
+                                    width: width / 4.4,
+                                    height: height / 15,
+                                    decoration: BoxDecoration(
+                                      color: color.withOpacity(0.83),
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(20),
+                                      ),
+                                      border: Border.all(
+                                        color: Colors.grey,
+                                        width: 1.4,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: <Widget>[
+                                        AutoSizeText(
+                                          text.substring(0, text.length - 1),
+                                          maxLines: 1,
+                                          minFontSize: 17,
+                                          style: GoogleFonts.rambla(
+                                            letterSpacing: 1.1,
+                                            fontSize: fontSz,
+                                            fontWeight: FontWeight.bold,
+                                            color: colorText,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    var indexInfo = widget
+                                                .dataGrades.classAssignments[
+                                            'Class ' + (index + 1).toString()]
+                                        ["Assignments"];
+                                    Map infoDict = {};
+                                    if (indexInfo.length != 0) {
+                                      Map classInfo = {
+                                        'Name': classNames[index],
+                                        'Grade': classGrades[index]
+                                      };
+                                      infoDict.addAll(widget
+                                              .dataGrades.classAssignments[
+                                          'Class ' + (index + 1).toString()]);
+                                      infoDict.addAll(classInfo);
+                                      infoDict
+                                          .addAll({"Std Grade": studentGrade});
+                                      infoDict.addAll({
+                                        "Date List":
+                                            widget.dataGrades.dateList[index]
+                                      });
+                                      infoDict.addAll({
+                                        "New Assignments":
+                                            widget.dataGrades.newAssignments
+                                      });
+                                      infoDict.addAll({
+                                        "New Scores":
+                                            widget.dataGrades.newScores
+                                      });
+                                      infoDict.addAll({
+                                        "New Classes":
+                                            widget.dataGrades.newClasses
+                                      });
+                                      Navigator.push(
+                                        context,
+                                        PageTransition(
+                                          curve: Curves.linear,
+                                          type: PageTransitionType.downToUp,
+                                          child: MyAssignmentsPage(
+                                            dataGradePage: infoDict,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -548,6 +681,15 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
 
   @override
   Widget build(BuildContext context) {
+    setState(() {});
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+    SystemChrome.setEnabledSystemUIOverlays(
+        [SystemUiOverlay.top, SystemUiOverlay.bottom]);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.grey.withOpacity(.6),
+      statusBarColor: Colors.grey.withOpacity(.6),
+    ));
     String gradeStr = grade.text;
     String weightStr = weight.text;
     var classAssignments = myClassList['Assignments'];
@@ -579,6 +721,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
     bool showDiff = false;
     int avgMajorCount = 0;
     int avgMinorCount = 0;
+    int totalNum = 0;
 
     if (firstGrade == '') {
       firstGrade = '0.00%';
@@ -755,11 +898,11 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
             groupValue: radioVal,
             onChanged: _radioValChange,
           ),
-          Text(
+          AutoSizeText(
             'Minor',
             style: TextStyle(
-              fontSize: 20.0,
-              height: 1.5,
+              fontSize: 18.0,
+              height: 1.2,
               color: Colors.black,
             ),
           ),
@@ -768,11 +911,11 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
             groupValue: radioVal,
             onChanged: _radioValChange,
           ),
-          Text(
+          AutoSizeText(
             'Major',
             style: TextStyle(
-              fontSize: 20.0,
-              height: 1.5,
+              fontSize: 17.5,
+              height: 1.2,
               color: Colors.black,
             ),
           ),
@@ -788,11 +931,11 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
             groupValue: radioVal,
             onChanged: _radioValChange,
           ),
-          Text(
+          AutoSizeText(
             'Other',
             style: TextStyle(
-              fontSize: 20.0,
-              height: 1.5,
+              fontSize: 18.0,
+              height: 1.2,
               color: Colors.black,
             ),
           ),
@@ -880,44 +1023,47 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
     cannotEdit = editError
         ? new WillPopScope(
             onWillPop: _willPopCallback,
-            child: Container(
-              alignment: AlignmentDirectional.center,
-              decoration: BoxDecoration(
-                color: Colors.white70,
-              ),
-              child: AlertDialog(
-                title: Text(
-                  'Cannot Edit Assignment',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.roboto(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
                   ),
                 ),
-                content: Text(
-                  'You cannot edit this assignment\'s info right now. It is either weighted null or has a letter grade (CNS, CWS, T, L, etc.). Also if it is an Non-Graded assignment, it cannot be edited because they are weighted 0%.\n\nPlease try again later if the assignment is changed.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.roboto(
-                    fontSize: 16,
-                  ),
-                ),
-                actions: <Widget>[
-                  FlatButton(
-                    child: Text(
-                      'OK',
-                      style: GoogleFonts.roboto(
-                        fontSize: 19.5,
-                        fontWeight: FontWeight.bold,
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
                       ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        editError = false;
-                      });
-                    },
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 2,
+                        alignment: Alignment.center,
+                        child: AutoSizeText(
+                          'You cannot edit this assignment\'s info right now. It is either weighted null or has a letter grade (CNS, CWS, T, L, etc.). Also if it is an Non-Graded assignment, it cannot be edited because they are weighted 0%.\n\nPlease try again later if the assignment is changed.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          editError = false;
+                        });
+                      },
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           )
         : new Container();
@@ -925,42 +1071,47 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
     past6 = additionError
         ? new WillPopScope(
             onWillPop: _willPopCallback,
-            child: Container(
-              alignment: AlignmentDirectional.center,
-              decoration: BoxDecoration(
-                color: Colors.white70,
-              ),
-              child: AlertDialog(
-                title: Text(
-                  'Cannot Add Too Many Items',
-                  style: GoogleFonts.roboto(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
                   ),
                 ),
-                content: Text(
-                  'You cannot add more than 6 new grades. Please close the class page and reopen it to enter more new grades.',
-                  style: GoogleFonts.roboto(
-                    fontSize: 16,
-                  ),
-                ),
-                actions: <Widget>[
-                  FlatButton(
-                    child: Text(
-                      'OK',
-                      style: GoogleFonts.roboto(
-                        fontSize: 19.5,
-                        fontWeight: FontWeight.bold,
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
                       ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        additionError = false;
-                      });
-                    },
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 5,
+                        alignment: Alignment.center,
+                        child: AutoSizeText(
+                          'You cannot add more than 6 new grades. Please close the class page and reopen it to enter more new grades.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          additionError = false;
+                        });
+                      },
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           )
         : new Container();
@@ -968,178 +1119,182 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
     var showExtraInfo = showInfo
         ? new WillPopScope(
             onWillPop: _willPopCallback,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.85),
-              ),
-              child: AlertDialog(
-                title: Text(
-                  'Extra Information',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.roboto(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
                   ),
                 ),
-                content: Container(
-                  height: 400,
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            height: 30,
-                            width: 30,
-                            color: Colors.cyan[200].withOpacity(.9),
-                          ),
-                          Text(
-                            '   Minor Grades',
-                            style: GoogleFonts.roboto(
-                              fontSize: 17,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            height: 30,
-                            width: 30,
-                            color: Colors.greenAccent[700].withOpacity(.5),
-                          ),
-                          Text(
-                            '   Major Grades',
-                            style: GoogleFonts.roboto(
-                              fontSize: 17,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            height: 30,
-                            width: 30,
-                            color: Colors.deepPurple[200],
-                          ),
-                          Text(
-                            '   Other/Non-Graded',
-                            style: GoogleFonts.roboto(
-                              fontSize: 17,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          text: '\n',
-                          style: TextStyle(
-                            fontSize: 17,
-                            color: Colors.black,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: 'Assignment Weight: ',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(
-                              text:
-                                  'The weight of the assignment which will be used to calculate the grade (usually from 0.0 to 1.0).',
-                            ),
-                          ],
+                Align(
+                  child: Container(
+                    decoration: BoxDecoration(),
+                    child: Container(
+                      width: width / 1.1,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.grey[500],
+                          width: 2.6,
                         ),
                       ),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          text: '\n',
-                          style: TextStyle(
-                            fontSize: 17,
-                            color: Colors.black,
+                      child: SimpleDialogOption(
+                        child: Container(
+                          height: height / 1.4,
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    height: 30,
+                                    width: 30,
+                                    color: Colors.cyan[200].withOpacity(.9),
+                                  ),
+                                  AutoSizeText(
+                                    '   Minor Grades',
+                                    style: GoogleFonts.roboto(
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    height: 30,
+                                    width: 30,
+                                    color:
+                                        Colors.greenAccent[700].withOpacity(.5),
+                                  ),
+                                  AutoSizeText(
+                                    '   Major Grades',
+                                    style: GoogleFonts.roboto(
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    height: 30,
+                                    width: 30,
+                                    color: Colors.deepPurple[200],
+                                  ),
+                                  AutoSizeText(
+                                    '   Other/Non-Graded',
+                                    style: GoogleFonts.roboto(
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              RichText(
+                                textAlign: TextAlign.center,
+                                text: TextSpan(
+                                  text: '\n',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text: 'Assignment Weight: ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text:
+                                          'The weight of the assignment which will be used to calculate the grade (usually from 0.0 to 1.0).',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              RichText(
+                                textAlign: TextAlign.center,
+                                text: TextSpan(
+                                  text: '\n',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text: 'Assignment Category: ',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text:
+                                          'How much is the assignment worth (what scale)? ',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              RichText(
+                                textAlign: TextAlign.center,
+                                text: TextSpan(
+                                  text: '',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text: '• Major Grades = 60%',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: '\n• Minor Grades = 40%',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: '\n• Non-Graded = 0%',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: '\n• Other Grades ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: '(Elementary Grades) ',
+                                    ),
+                                    TextSpan(
+                                      text: '= 100%',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: 'Assignment Category: ',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(
-                              text:
-                                  'How much is the assignment worth (what scale)? ',
-                            ),
-                          ],
                         ),
-                      ),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          text: '',
-                          style: TextStyle(
-                            fontSize: 17,
-                            color: Colors.black,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: '• Major Grades = 60%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '\n• Minor Grades = 40%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '\n• Non-Graded = 0%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '\n• Other Grades ',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '(Elementary Grades) ',
-                            ),
-                            TextSpan(
-                              text: '= 100%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: <Widget>[
-                  FlatButton(
-                    child: Text(
-                      'OK',
-                      style: GoogleFonts.roboto(
-                        fontSize: 19.5,
-                        fontWeight: FontWeight.bold,
+                        onPressed: () {
+                          setState(() {
+                            showInfo = false;
+                          });
+                        },
                       ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        showInfo = false;
-                      });
-                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           )
         : new Container();
@@ -1165,13 +1320,14 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                         ),
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      height: 650,
+                      width: width / 1.05,
+                      height: height / 1.09,
                       child: Column(
                         children: <Widget>[
                           Row(
                             children: [
                               Container(
-                                height: 60,
+                                height: height / 14,
                                 alignment: Alignment.topLeft,
                                 child: Container(
                                   padding: EdgeInsets.all(10),
@@ -1216,30 +1372,30 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               ),
                             ],
                           ),
-                          Text(
+                          AutoSizeText(
                             'Add/Edit A Grade: ',
+                            minFontSize: 23,
                             style: GoogleFonts.cabin(
                               decoration: TextDecoration.underline,
                               textStyle: TextStyle(
-                                fontSize: 28,
                                 height: 1.5,
                                 color: Colors.black,
                               ),
                             ),
                           ),
                           Padding(
-                            padding: EdgeInsets.all(14),
+                            padding: EdgeInsets.all(12),
                           ),
                           Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
-                              Text(
+                              AutoSizeText(
                                 'Assignment Weight (0.0 to 1.0):',
+                                minFontSize: 16,
                                 style: GoogleFonts.oxygen(
                                   textStyle: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 20.0,
-                                    height: 1.5,
+                                    height: 1.2,
                                     color: Colors.black,
                                   ),
                                 ),
@@ -1252,8 +1408,8 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                 ),
                                 style: GoogleFonts.notoSans(
                                   textStyle: TextStyle(
-                                    fontSize: 20.0,
-                                    height: 1.5,
+                                    fontSize: 16,
+                                    height: 1.6,
                                     color: Colors.black,
                                   ),
                                 ),
@@ -1266,13 +1422,13 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                           Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
-                              Text(
+                              AutoSizeText(
                                 'Grade Percentage (0.0 to 150.0): ',
+                                minFontSize: 16,
                                 style: GoogleFonts.oxygen(
                                   textStyle: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 20.0,
-                                    height: 1.5,
+                                    height: 1.2,
                                     color: Colors.black,
                                   ),
                                 ),
@@ -1289,8 +1445,8 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                       ),
                                       style: GoogleFonts.notoSans(
                                         textStyle: TextStyle(
-                                          fontSize: 20.0,
-                                          height: 1.5,
+                                          fontSize: 16,
+                                          height: 1.6,
                                           color: Colors.black,
                                         ),
                                       ),
@@ -1301,8 +1457,8 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                     style: GoogleFonts.oxygen(
                                       textStyle: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 20.0,
-                                        height: 1.5,
+                                        fontSize: 16,
+                                        height: 1.6,
                                         color: Colors.black,
                                       ),
                                     ),
@@ -1312,15 +1468,15 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                             ],
                           ),
                           Padding(
-                            padding: EdgeInsets.all(8),
+                            padding: EdgeInsets.all(12),
                           ),
-                          Text(
+                          AutoSizeText(
                             'Category of Assignment: ',
+                            minFontSize: 16,
                             style: GoogleFonts.oxygen(
                               textStyle: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 20.0,
-                                height: 1.5,
+                                height: 1.2,
                                 color: Colors.black,
                               ),
                             ),
@@ -1328,7 +1484,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                           replacement,
                           radioNA,
                           Padding(
-                            padding: EdgeInsets.all(15),
+                            padding: EdgeInsets.all(13),
                           ),
                           RaisedButton(
                             shape: RoundedRectangleBorder(
@@ -1415,8 +1571,8 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                             },
                             color: Colors.green,
                             child: Container(
-                              width: 200,
-                              padding: EdgeInsets.all(15),
+                              width: width / 2,
+                              padding: EdgeInsets.all(13),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -1424,10 +1580,10 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceEvenly,
                                 children: <Widget>[
-                                  Text(
+                                  AutoSizeText(
                                     'Continue',
                                     style: TextStyle(
-                                      fontSize: 20,
+                                      fontSize: 18,
                                       color: Colors.white,
                                     ),
                                   ),
@@ -1516,8 +1672,8 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                         ),
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      height: 425,
-                      width: 350,
+                      height: height / 1.5,
+                      width: width / 1.04,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -1525,7 +1681,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                             children: [
                               Container(
                                 padding: EdgeInsets.only(bottom: 10),
-                                width: 70,
+                                width: width / 5,
                                 alignment: Alignment.topLeft,
                                 child: RaisedButton(
                                   shape: RoundedRectangleBorder(
@@ -1561,12 +1717,12 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              Text(
+                              AutoSizeText(
                                 'Major\nAverage',
+                                minFontSize: 18,
                                 style: GoogleFonts.arimo(
                                   textStyle: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 20.0,
                                     height: 1.5,
                                     color: Colors.black,
                                   ),
@@ -1575,8 +1731,8 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               ),
                               Container(
                                 alignment: Alignment.center,
-                                height: 100,
-                                width: 175,
+                                height: height / 7.2,
+                                width: width / 2.3,
                                 decoration: BoxDecoration(
                                   color: GradePage().getColor(
                                       ((majorPoints / majorTotal) * 100)
@@ -1588,14 +1744,14 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                   ),
                                   borderRadius: BorderRadius.circular(30),
                                 ),
-                                child: Text(
+                                child: AutoSizeText(
                                   ((majorPoints / majorTotal) * 100)
                                           .toStringAsFixed(3) +
                                       " %",
+                                  minFontSize: 23,
                                   style: GoogleFonts.arimo(
                                     textStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 25.0,
                                       height: 1.5,
                                       color: Colors.white,
                                     ),
@@ -1605,23 +1761,27 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               ),
                             ],
                           ),
-                          Text(
+                          Padding(
+                            padding: EdgeInsets.all(5),
+                          ),
+                          AutoSizeText(
                             ("# of Majors: " + avgMajorCount.toString()),
+                            minFontSize: 18,
                             style: GoogleFonts.arimo(
                               textStyle: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 20.0,
                                 height: 1.5,
                                 color: Colors.black,
                               ),
                             ),
+                            textAlign: TextAlign.center,
                           ),
                           Padding(
                             padding: EdgeInsets.all(4),
                           ),
                           Divider(
-                            indent: 13,
-                            endIndent: 13,
+                            indent: width / 27,
+                            endIndent: width / 27,
                             thickness: 2.4,
                             color: Colors.grey[900],
                           ),
@@ -1632,12 +1792,12 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              Text(
+                              AutoSizeText(
                                 'Minor\nAverage',
+                                minFontSize: 18,
                                 style: GoogleFonts.arimo(
                                   textStyle: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 20.0,
                                     height: 1.5,
                                     color: Colors.black,
                                   ),
@@ -1646,8 +1806,8 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               ),
                               Container(
                                 alignment: Alignment.center,
-                                height: 100,
-                                width: 175,
+                                height: height / 7.2,
+                                width: width / 2.3,
                                 decoration: BoxDecoration(
                                   color: GradePage().getColor(
                                       ((minorPoints / minorTotal) * 100)
@@ -1659,14 +1819,14 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                   ),
                                   borderRadius: BorderRadius.circular(30),
                                 ),
-                                child: Text(
+                                child: AutoSizeText(
                                   ((minorPoints / minorTotal) * 100)
                                           .toStringAsFixed(3) +
                                       " %",
+                                  minFontSize: 23.0,
                                   style: GoogleFonts.arimo(
                                     textStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 25.0,
                                       height: 1.5,
                                       color: Colors.white,
                                     ),
@@ -1676,16 +1836,17 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               ),
                             ],
                           ),
-                          Text(
+                          AutoSizeText(
                             ("# of Minors: " + avgMinorCount.toString()),
+                            minFontSize: 18,
                             style: GoogleFonts.arimo(
                               textStyle: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 20.0,
                                 height: 1.5,
                                 color: Colors.black,
                               ),
                             ),
+                            textAlign: TextAlign.center,
                           ),
                           Padding(
                             padding: EdgeInsets.all(10),
@@ -1700,6 +1861,12 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
           : new Container();
     }
 
+    myClassList['Assignments'].forEach((element) {
+      if (myClassList['New Assignments'].contains(element)) {
+        totalNum++;
+      }
+    });
+
     void checkNewGrades(assignment) {
       bool checkGrades =
           widget.dataGradePage["New Assignments"].contains(assignment);
@@ -1713,13 +1880,13 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
             ),
             borderRadius: BorderRadius.circular(7),
           ),
-          padding: EdgeInsets.all(2.5),
+          padding: EdgeInsets.all(2),
           child: AutoSizeText(
             "NEW",
             textAlign: TextAlign.center,
             maxLines: 1,
             style: GoogleFonts.roboto(
-              fontSize: 14,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
@@ -1748,7 +1915,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                   children: <Widget>[
                     Padding(
                       padding: EdgeInsets.only(
-                        top: 30,
+                        top: 35,
                         right: 15,
                         bottom: 5,
                       ),
@@ -1764,7 +1931,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               },
                               icon: Icon(
                                 Icons.close,
-                                size: 40,
+                                size: 35,
                                 color: Colors.black87,
                               ),
                             ),
@@ -1779,7 +1946,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               },
                               icon: Icon(
                                 Icons.info_outline,
-                                size: 39,
+                                size: 35,
                                 color: Colors.black87,
                               ),
                             ),
@@ -1802,7 +1969,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               },
                               icon: Icon(
                                 Icons.add,
-                                size: 45,
+                                size: 40,
                                 color: Colors.black,
                               ),
                             ),
@@ -1816,8 +1983,8 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                     Column(
                       children: <Widget>[
                         Container(
-                          height: 100,
-                          width: 380,
+                          height: height / 8,
+                          width: width / 1.05,
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(.74),
@@ -1838,7 +2005,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                               className,
                               textAlign: TextAlign.center,
                               maxLines: 2,
-                              maxFontSize: 27,
+                              maxFontSize: 25,
                               style: GoogleFonts.francoisOne(
                                 fontSize: 27,
                                 color: Colors.black87,
@@ -1854,6 +2021,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: <Widget>[
                             Container(
+                              padding: EdgeInsets.all(3.5),
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(.65),
@@ -1867,19 +2035,17 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                   ),
                                 ],
                               ),
-                              width: 220,
-                              height: 75,
-                              child: Text(
-                                '• # of Grades: ' +
+                              child: AutoSizeText(
+                                '• Last Updated: ' +
+                                    date.toString() +
+                                    '\n' +
+                                    '• Total # of Grades: ' +
                                     countGrades.toString() +
                                     '\n' +
-                                    '• # of Added Grades: ' +
-                                    countAdded.toString() +
-                                    '\n' +
-                                    '• Last Updated: ' +
-                                    date,
+                                    '• # of New Grades: ' +
+                                    totalNum.toString(),
+                                maxFontSize: 13,
                                 style: GoogleFonts.bitter(
-                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                   fontStyle: FontStyle.italic,
                                   color: Colors.black,
@@ -1892,12 +2058,13 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                 children: <Widget>[
                                   Container(
                                     alignment: Alignment.center,
-                                    width: 120,
-                                    height: 88,
-                                    child: Text(
+                                    width: width / 3.2,
+                                    height: height / 8.2,
+                                    child: AutoSizeText(
                                       totalAverage.toStringAsFixed(2),
+                                      overflow: TextOverflow.clip,
+                                      minFontSize: 24,
                                       style: GoogleFonts.ubuntu(
-                                        fontSize: 28,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                       ),
@@ -1920,9 +2087,9 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                   ),
                                   Container(
                                     alignment: Alignment.center,
-                                    width: 72,
-                                    height: 29,
-                                    child: Text(
+                                    width: width / 5,
+                                    height: height / 24,
+                                    child: AutoSizeText(
                                       printText,
                                       style: GoogleFonts.aBeeZee(
                                         fontSize: 13,
@@ -1954,11 +2121,11 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                           ],
                         ),
                         Padding(
-                          padding: EdgeInsets.all(7),
+                          padding: EdgeInsets.all(5),
                         ),
                         Divider(
-                          indent: 13,
-                          endIndent: 13,
+                          indent: width / 28,
+                          endIndent: width / 28,
                           thickness: 2.8,
                           color: Colors.grey[900],
                         ),
@@ -1968,440 +2135,456 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                 ),
               ),
               Expanded(
-                child: ListView.builder(
-                  itemCount: classAssignments.length,
-                  itemBuilder: (context, index) {
-                    checkNewGrades(classAssignments[index]);
-                    return Container(
-                      alignment: Alignment.center,
-                      padding: EdgeInsets.only(
-                          bottom: 7.5, top: 7.5, left: 5.0, right: 5.0),
-                      child: InkWell(
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey[600].withOpacity(0.5),
-                                spreadRadius: 1,
-                                blurRadius: 3,
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  child: ListView.builder(
+                    itemCount: classAssignments.length,
+                    itemBuilder: (context, index) {
+                      checkNewGrades(classAssignments[index]);
+                      return Container(
+                        alignment: Alignment.center,
+                        padding: EdgeInsets.only(
+                            bottom: 2.5, top: 5, left: 6.0, right: 6.0),
+                        child: InkWell(
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey[600].withOpacity(0.5),
+                                  spreadRadius: 1,
+                                  blurRadius: 3,
+                                ),
+                              ],
+                              color: _tileColor(assignmentsCategory[index]),
+                              border: Border.all(
+                                color: Colors.blueGrey[900],
+                                width: 2.6,
                               ),
-                            ],
-                            color: _tileColor(assignmentsCategory[index]),
-                            border: Border.all(
-                              color: Colors.blueGrey[900],
-                              width: 2.6,
+                              borderRadius: new BorderRadius.all(
+                                Radius.circular(15),
+                              ),
                             ),
-                            borderRadius: new BorderRadius.all(
-                              Radius.circular(15),
-                            ),
-                          ),
-                          child: Stack(
-                            alignment: Alignment.topLeft,
-                            children: [
-                              newGrades,
-                              ListTile(
-                                contentPadding: EdgeInsets.all(12),
-                                leading: IconButton(
-                                  tooltip: 'Edit',
-                                  alignment: Alignment.centerLeft,
-                                  onPressed: () {
-                                    setState(
-                                      () {
-                                        changeNum = index;
-                                        _checkEditError(index);
-                                        try {
-                                          if (((_isNumeric(assignmentsGrades[
-                                                              index]) ==
-                                                          true ||
-                                                      assignmentsGrades[
-                                                              index] ==
-                                                          '') &&
-                                                  _isNumeric(
-                                                          assignmentsTotalPoints[
-                                                              index]) ==
-                                                      true) &&
-                                              assignmentsCategory[index] !=
-                                                  'Non-graded') {
-                                            editG = true;
-                                            if (double.parse(
-                                                    assignmentsTotalPoints[
-                                                        index]) <
-                                                100) {
-                                              setState(() {
-                                                assignmentsWeight[
-                                                    index] = (double.parse(
+                            child: Stack(
+                              alignment: Alignment.topLeft,
+                              children: [
+                                newGrades,
+                                ListTile(
+                                  contentPadding: EdgeInsets.all(8),
+                                  leading: IconButton(
+                                    tooltip: 'Edit',
+                                    alignment: Alignment.centerLeft,
+                                    onPressed: () {
+                                      setState(
+                                        () {
+                                          changeNum = index;
+                                          _checkEditError(index);
+                                          try {
+                                            if (((_isNumeric(assignmentsGrades[
+                                                                index]) ==
+                                                            true ||
+                                                        assignmentsGrades[
+                                                                index] ==
+                                                            '') &&
+                                                    _isNumeric(
                                                             assignmentsTotalPoints[
-                                                                index]) /
-                                                        100)
-                                                    .toString();
-                                                if (assignmentsWeightScore[
-                                                        index] !=
-                                                    "") {
-                                                  assignmentsGrades[
-                                                      index] = ((double.parse(
-                                                                  assignmentsWeightScore[
-                                                                      index]) /
-                                                              (double.parse(
-                                                                  assignmentsTotalPoints[
-                                                                      index]))) *
+                                                                index]) ==
+                                                        true) &&
+                                                assignmentsCategory[index] !=
+                                                    'Non-graded') {
+                                              editG = true;
+                                              if (double.parse(
+                                                      assignmentsTotalPoints[
+                                                          index]) <
+                                                  100) {
+                                                setState(() {
+                                                  assignmentsWeight[
+                                                      index] = (double.parse(
+                                                              assignmentsTotalPoints[
+                                                                  index]) /
                                                           100)
-                                                      .toStringAsFixed(2);
-                                                } else {
-                                                  assignmentsGrades[index] = "";
-                                                }
-                                              });
+                                                      .toString();
+                                                  if (assignmentsWeightScore[
+                                                          index] !=
+                                                      "") {
+                                                    assignmentsGrades[
+                                                        index] = ((double.parse(
+                                                                    assignmentsWeightScore[
+                                                                        index]) /
+                                                                (double.parse(
+                                                                    assignmentsTotalPoints[
+                                                                        index]))) *
+                                                            100)
+                                                        .toStringAsFixed(2);
+                                                  } else {
+                                                    assignmentsGrades[index] =
+                                                        "";
+                                                  }
+                                                });
+                                              }
+                                              grade.text =
+                                                  assignmentsGrades[index];
+                                              weight.text =
+                                                  assignmentsWeight[index];
+                                              if (assignmentsCategory[index] ==
+                                                  'Minor Grades') {
+                                                _radioValChange(0);
+                                              } else if (assignmentsCategory[
+                                                      index] ==
+                                                  'Major Grades') {
+                                                _radioValChange(1);
+                                              } else {
+                                                _radioValChange(2);
+                                              }
+                                              addNew = true;
+                                              editMyGrade = true;
                                             }
-
-                                            grade.text =
-                                                assignmentsGrades[index];
-                                            weight.text =
-                                                assignmentsWeight[index];
-                                            if (assignmentsCategory[index] ==
-                                                'Minor Grades') {
-                                              _radioValChange(0);
-                                            } else if (assignmentsCategory[
-                                                    index] ==
-                                                'Major Grades') {
-                                              _radioValChange(1);
-                                            } else {
-                                              _radioValChange(2);
-                                            }
-                                            addNew = true;
-                                            editMyGrade = true;
+                                          } on FormatException {
+                                            editError = true;
+                                          } on TypeError {
+                                            editError = true;
                                           }
-                                        } on FormatException {
-                                          editError = true;
-                                        } on TypeError {
-                                          editError = true;
-                                        }
-                                      },
-                                    );
-                                  },
-                                  icon: Icon(
-                                    Icons.edit,
-                                    size: 25,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                                title: AutoSizeText(
-                                  classAssignments[index],
-                                  overflow: TextOverflow.ellipsis,
-                                  minFontSize: 19,
-                                  maxLines: 4,
-                                  style: GoogleFonts.cabin(
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                trailing: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(12),
-                                    ),
-                                    color: Colors.white,
-                                    border: Border.all(
-                                      color: Colors.black,
-                                      width: 2,
+                                        },
+                                      );
+                                    },
+                                    icon: Icon(
+                                      Icons.edit,
+                                      size: width / 17,
+                                      color: Colors.grey[700],
                                     ),
                                   ),
-                                  alignment: Alignment.center,
-                                  height: 45,
-                                  width: 82,
-                                  child: AutoSizeText(
-                                    assignmentsGrades[index],
+                                  title: AutoSizeText(
+                                    classAssignments[index],
                                     overflow: TextOverflow.ellipsis,
-                                    minFontSize: 21,
-                                    maxLines: 1,
-                                    style: GoogleFonts.heebo(
-                                      fontWeight: FontWeight.bold,
-                                      color: _assignmentGradeC(
-                                          assignmentsGrades[index], index),
+                                    minFontSize: 15,
+                                    maxLines: 2,
+                                    style: GoogleFonts.cabin(
+                                      color: Colors.black87,
                                     ),
                                   ),
-                                ),
-                                onTap: () {
-                                  showModalBottomSheet(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(40),
-                                        topRight: Radius.circular(40),
+                                  trailing: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(12),
+                                      ),
+                                      color: Colors.white,
+                                      border: Border.all(
+                                        color: Colors.black,
+                                        width: 2,
                                       ),
                                     ),
-                                    context: context,
-                                    builder: (context) => Container(
-                                      height: 450,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[300],
+                                    alignment: Alignment.center,
+                                    height: height / 16.5,
+                                    width: width / 4.2,
+                                    child: AutoSizeText(
+                                      assignmentsGrades[index],
+                                      overflow: TextOverflow.ellipsis,
+                                      minFontSize: 18,
+                                      maxLines: 1,
+                                      style: GoogleFonts.heebo(
+                                        fontWeight: FontWeight.bold,
+                                        color: _assignmentGradeC(
+                                            assignmentsGrades[index], index),
+                                      ),
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    showModalBottomSheet(
+                                      shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.only(
-                                          topRight: Radius.circular(40),
                                           topLeft: Radius.circular(40),
-                                        ),
-                                        border: Border.all(
-                                          color: Colors.grey[700],
-                                          width: 2.6,
+                                          topRight: Radius.circular(40),
                                         ),
                                       ),
-                                      child: Container(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: <Widget>[
-                                            Container(
-                                              padding: EdgeInsets.only(
-                                                  top: 5, left: 8, right: 8),
-                                              alignment: Alignment.center,
-                                              child: AutoSizeText(
-                                                classAssignments[index],
-                                                textAlign: TextAlign.center,
-                                                maxLines: 3,
-                                                minFontSize: 24,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: GoogleFonts.mukta(
-                                                  decoration:
-                                                      TextDecoration.underline,
-                                                  color: Colors.black,
-                                                  textStyle: TextStyle(
-                                                    height: 1.7,
-                                                    fontWeight: FontWeight.bold,
+                                      context: context,
+                                      builder: (context) => Container(
+                                        height: height / 1.3,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[300],
+                                          borderRadius: BorderRadius.only(
+                                            topRight: Radius.circular(40),
+                                            topLeft: Radius.circular(40),
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.grey[700],
+                                            width: 2.6,
+                                          ),
+                                        ),
+                                        child: Container(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: <Widget>[
+                                              Container(
+                                                padding: EdgeInsets.only(
+                                                    top: 5, left: 8, right: 8),
+                                                alignment: Alignment.center,
+                                                child: AutoSizeText(
+                                                  classAssignments[index],
+                                                  textAlign: TextAlign.center,
+                                                  maxLines: 2,
+                                                  minFontSize: 21,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: GoogleFonts.mukta(
+                                                    decoration: TextDecoration
+                                                        .underline,
                                                     color: Colors.black,
+                                                    textStyle: TextStyle(
+                                                      height: 1.7,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.black,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceEvenly,
-                                              children: <Widget>[
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 110,
-                                                  child: AutoSizeText(
-                                                    'Category: ',
-                                                    maxLines: 1,
-                                                    minFontSize: 18,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
+                                                children: <Widget>[
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: width / 3.1,
+                                                    child: AutoSizeText(
+                                                      '  Category: ',
+                                                      maxLines: 1,
+                                                      minFontSize: 16,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 220,
-                                                  child: AutoSizeText(
-                                                    'Weighted Score: ',
-                                                    maxLines: 1,
-                                                    minFontSize: 18,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: 2 * (width / 3.1),
+                                                    child: AutoSizeText(
+                                                      'Weighted Score: ',
+                                                      maxLines: 1,
+                                                      minFontSize: 16,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              ],
-                                            ),
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceEvenly,
-                                              children: <Widget>[
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 110,
-                                                  height: 110,
-                                                  child: AutoSizeText(
-                                                    assignmentsCategory[index],
-                                                    maxLines: 2,
-                                                    minFontSize: 20,
-                                                    textAlign: TextAlign.center,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
+                                                ],
+                                              ),
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
+                                                children: <Widget>[
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: width / 3.1,
+                                                    height: width / 3.1,
+                                                    child: AutoSizeText(
+                                                      assignmentsCategory[
+                                                          index],
+                                                      maxLines: 2,
+                                                      minFontSize: 17,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                        color: Colors.grey[900],
+                                                        width: 2.5,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                        Radius.circular(30),
+                                                      ),
+                                                      color: Colors.grey[100],
                                                     ),
                                                   ),
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color: Colors.grey[900],
-                                                      width: 2.5,
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: 2 * (width / 3.1),
+                                                    height: width / 3.1,
+                                                    child: AutoSizeText(
+                                                      assignmentsWeightScore[
+                                                              index] +
+                                                          " / " +
+                                                          assignmentsTotalPoints[
+                                                              index],
+                                                      maxLines: 1,
+                                                      minFontSize: 17,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
                                                     ),
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(30),
-                                                    ),
-                                                    color: Colors.grey[100],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 220,
-                                                  height: 110,
-                                                  child: AutoSizeText(
-                                                    assignmentsWeightScore[
-                                                            index] +
-                                                        " / " +
-                                                        assignmentsTotalPoints[
-                                                            index],
-                                                    maxLines: 1,
-                                                    minFontSize: 20,
-                                                    textAlign: TextAlign.center,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
-                                                    ),
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color: Colors.grey[900],
-                                                      width: 2.5,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(30),
-                                                    ),
-                                                    color: Colors.grey[100],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceEvenly,
-                                              children: <Widget>[
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 110,
-                                                  child: AutoSizeText(
-                                                    'Due Date: ',
-                                                    maxLines: 1,
-                                                    minFontSize: 18,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                        color: Colors.grey[900],
+                                                        width: 2.5,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                        Radius.circular(30),
+                                                      ),
+                                                      color: Colors.grey[100],
                                                     ),
                                                   ),
-                                                ),
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 110,
-                                                  child: AutoSizeText(
-                                                    'Weight: ',
-                                                    maxLines: 1,
-                                                    minFontSize: 18,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
+                                                ],
+                                              ),
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
+                                                children: <Widget>[
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: width / 3.1,
+                                                    child: AutoSizeText(
+                                                      'Due Date: ',
+                                                      maxLines: 1,
+                                                      minFontSize: 16,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 110,
-                                                  child: AutoSizeText(
-                                                    'Percentage: ',
-                                                    maxLines: 1,
-                                                    minFontSize: 18,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: width / 3.1,
+                                                    child: AutoSizeText(
+                                                      'Weight: ',
+                                                      maxLines: 1,
+                                                      minFontSize: 16,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              ],
-                                            ),
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceEvenly,
-                                              children: <Widget>[
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 110,
-                                                  height: 110,
-                                                  child: AutoSizeText(
-                                                    assignmentsDueDate[index],
-                                                    maxLines: 1,
-                                                    minFontSize: 16,
-                                                    textAlign: TextAlign.center,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: width / 3.1,
+                                                    child: AutoSizeText(
+                                                      'Percentage: ',
+                                                      maxLines: 1,
+                                                      minFontSize: 16,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
                                                     ),
                                                   ),
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color: Colors.grey[900],
-                                                      width: 2.5,
+                                                ],
+                                              ),
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
+                                                children: <Widget>[
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: width / 3.1,
+                                                    height: width / 3.1,
+                                                    child: AutoSizeText(
+                                                      assignmentsDueDate[index],
+                                                      maxLines: 1,
+                                                      minFontSize: 14,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
                                                     ),
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(30),
-                                                    ),
-                                                    color: Colors.grey[100],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 110,
-                                                  height: 110,
-                                                  child: AutoSizeText(
-                                                    assignmentsWeight[index],
-                                                    maxLines: 1,
-                                                    minFontSize: 17,
-                                                    textAlign: TextAlign.center,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
-                                                    ),
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color: Colors.grey[900],
-                                                      width: 2.5,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(30),
-                                                    ),
-                                                    color: Colors.grey[100],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  alignment: Alignment.center,
-                                                  width: 110,
-                                                  height: 110,
-                                                  child: AutoSizeText(
-                                                    assignmentsPercent[index],
-                                                    maxLines: 1,
-                                                    minFontSize: 17,
-                                                    textAlign: TextAlign.center,
-                                                    style: GoogleFonts.alata(
-                                                      color: Colors.black87,
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                        color: Colors.grey[900],
+                                                        width: 2.5,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                        Radius.circular(30),
+                                                      ),
+                                                      color: Colors.grey[100],
                                                     ),
                                                   ),
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color: Colors.grey[900],
-                                                      width: 2.5,
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: width / 3.1,
+                                                    height: width / 3.1,
+                                                    child: AutoSizeText(
+                                                      assignmentsWeight[index],
+                                                      maxLines: 1,
+                                                      minFontSize: 15,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
                                                     ),
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(30),
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                        color: Colors.grey[900],
+                                                        width: 2.5,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                        Radius.circular(30),
+                                                      ),
+                                                      color: Colors.grey[100],
                                                     ),
-                                                    color: Colors.grey[100],
                                                   ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    width: width / 3.1,
+                                                    height: width / 3.1,
+                                                    child: AutoSizeText(
+                                                      assignmentsPercent[index],
+                                                      maxLines: 1,
+                                                      minFontSize: 15,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: GoogleFonts.alata(
+                                                        color: Colors.black87,
+                                                      ),
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                        color: Colors.grey[900],
+                                                        width: 2.5,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                        Radius.circular(30),
+                                                      ),
+                                                      color: Colors.grey[100],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ],

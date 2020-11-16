@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter/services.dart';
 
 class MyExtrasPage extends StatefulWidget {
   final DataInfo dataExtras;
@@ -27,14 +28,15 @@ class ExtraApp extends State<MyExtrasPage> {
   String unweightedGPA;
   bool showIPR = false;
   bool showSchedule = false;
+  bool showRC = false;
   String reportRun = '';
   bool error = false;
   bool unableAccess = false;
   bool isLoading = false;
 
   // local Android host url = 'http://10.0.2.2:5000/'
-  // app url = 'https://inductive-seat-277103.uc.r.appspot.com/'
-  String host = 'http://10.0.2.2:5000/';
+  // app url = 'https://gradegenius.org/'
+  String host = 'https://gradegenius.org/';
 
   Future<HttpClientResponse> makeRequest(
       Uri uri, List<Cookie> requestCookies) async {
@@ -63,28 +65,17 @@ class ExtraApp extends State<MyExtrasPage> {
     return await completer.future;
   }
 
-  Future gpaRequest(urlReceiver) async {
-    setState(() {
-      myCookies = widget.dataExtras.myCookies;
-    });
-    var response = await makeRequest(Uri.parse(urlReceiver), myCookies);
-    if (response.statusCode == 404 || response.statusCode == 500) {
-      setState(() {
-        unableAccess = true;
-      });
-    }
-    Uri location = Uri.parse(response.headers[HttpHeaders.locationHeader][0]);
-    response = await makeRequest(location, response.cookies);
-    final completer = Completer<String>();
-    final contents = StringBuffer();
-    response.transform(utf8.decoder).listen((data) {
-      contents.write(data);
-    }, onDone: () => completer.complete(contents.toString()));
-    return await completer.future;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+    SystemChrome.setEnabledSystemUIOverlays(
+        [SystemUiOverlay.top, SystemUiOverlay.bottom]);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.grey.withOpacity(.6),
+      statusBarColor: Colors.grey.withOpacity(.6),
+    ));
+
     Future<bool> _willPopCallback() async {
       return false;
     }
@@ -102,9 +93,10 @@ class ExtraApp extends State<MyExtrasPage> {
                     ),
                     child: Container(
                       decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10.0)),
-                      width: 300.0,
-                      height: 200.0,
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      width: width / 1.2,
+                      height: height / 3.6,
                       alignment: AlignmentDirectional.center,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -112,20 +104,20 @@ class ExtraApp extends State<MyExtrasPage> {
                         children: <Widget>[
                           Center(
                             child: SizedBox(
-                              height: 50.0,
-                              width: 50.0,
+                              height: height / 15,
+                              width: width / 8,
                               child: SpinKitFadingCircle(
                                 color: Colors.grey[600],
                               ),
                             ),
                           ),
                           Container(
-                            margin: const EdgeInsets.only(top: 25.0),
+                            margin: EdgeInsets.only(top: 25.0),
                             child: Center(
-                              child: Text(
-                                'Loading Calculations...',
+                              child: AutoSizeText(
+                                'Loading Info...',
+                                minFontSize: 22,
                                 style: GoogleFonts.patrickHand(
-                                  fontSize: 25,
                                   color: Colors.grey[700],
                                 ),
                               ),
@@ -144,42 +136,48 @@ class ExtraApp extends State<MyExtrasPage> {
     var pullError = error
         ? new WillPopScope(
             onWillPop: _willPopCallback,
-            child: Container(
-              alignment: AlignmentDirectional.center,
-              decoration: BoxDecoration(
-                color: Colors.white70,
-              ),
-              child: AlertDialog(
-                title: Text(
-                  'Unable to Access This Report',
-                  style: GoogleFonts.roboto(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
                   ),
                 ),
-                content: Text(
-                  'HAC is probably down, this report is currently unavailable in HAC, or Grade Genius could not process this report. Please try again later.',
-                  style: GoogleFonts.roboto(
-                    fontSize: 16,
-                  ),
-                ),
-                actions: <Widget>[
-                  FlatButton(
-                    child: Text(
-                      'OK',
-                      style: GoogleFonts.roboto(
-                        fontSize: 19.5,
-                        fontWeight: FontWeight.bold,
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
                       ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        error = false;
-                      });
-                    },
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 3,
+                        alignment: Alignment.center,
+                        child: AutoSizeText(
+                          'HAC is probably down, this report is currently unavailable in HAC, or Grade Genius could not process this report. Please try again later.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          error = false;
+                          isLoading = false;
+                        });
+                      },
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           )
         : new Container();
@@ -207,7 +205,7 @@ class ExtraApp extends State<MyExtrasPage> {
                       },
                       color: Colors.red[400],
                       child: Container(
-                        width: 25,
+                        width: width / 13,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -226,14 +224,15 @@ class ExtraApp extends State<MyExtrasPage> {
                   Padding(
                     padding: EdgeInsets.all(10),
                   ),
-                  Text(
+                  AutoSizeText(
                     "Interim Progress Report (IPR)",
+                    minFontSize: 24.0,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.asap(
                       textStyle: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 28.0,
-                          color: Colors.grey[850]),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[850],
+                      ),
                     ),
                   ),
                   Padding(
@@ -241,8 +240,7 @@ class ExtraApp extends State<MyExtrasPage> {
                   ),
                   Container(
                     padding: EdgeInsets.all(10),
-                    width: 350,
-                    height: 440,
+                    width: width / 1.1,
                     decoration: BoxDecoration(
                       color: Colors.grey[100].withOpacity(.98),
                       borderRadius: BorderRadius.circular(20),
@@ -255,19 +253,19 @@ class ExtraApp extends State<MyExtrasPage> {
                       children: [
                         JsonTable(
                           iprMap,
-                          showColumnToggle: true,
                         ),
                         Padding(
-                          padding: EdgeInsets.all(8),
+                          padding: EdgeInsets.all(15),
                         ),
-                        Text(
+                        AutoSizeText(
                           reportRun,
+                          minFontSize: 17,
                           textAlign: TextAlign.center,
                           style: GoogleFonts.asap(
                             textStyle: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20.0,
-                                color: Colors.grey[850]),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[850],
+                            ),
                           ),
                         ),
                       ],
@@ -302,7 +300,7 @@ class ExtraApp extends State<MyExtrasPage> {
                       },
                       color: Colors.red[400],
                       child: Container(
-                        width: 25,
+                        width: width / 13,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -318,17 +316,15 @@ class ExtraApp extends State<MyExtrasPage> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.all(6),
-                  ),
-                  Text(
+                  AutoSizeText(
                     "Schedule",
                     textAlign: TextAlign.center,
+                    minFontSize: 24.0,
                     style: GoogleFonts.asap(
                       textStyle: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 28.0,
-                          color: Colors.grey[850]),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[850],
+                      ),
                     ),
                   ),
                   Padding(
@@ -336,7 +332,7 @@ class ExtraApp extends State<MyExtrasPage> {
                   ),
                   Container(
                     padding: EdgeInsets.all(10),
-                    width: 350,
+                    width: width / 1.1,
                     decoration: BoxDecoration(
                       color: Colors.grey[100].withOpacity(.98),
                       borderRadius: BorderRadius.circular(20),
@@ -349,10 +345,87 @@ class ExtraApp extends State<MyExtrasPage> {
                       children: [
                         JsonTable(
                           scheduleMap,
-                          showColumnToggle: true,
                         ),
                         Padding(
                           padding: EdgeInsets.all(8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        : new Container();
+
+    var rcInfo = showRC
+        ? new WillPopScope(
+            onWillPop: _willPopCallback,
+            child: Container(
+              color: Colors.white,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    alignment: Alignment.topLeft,
+                    padding: EdgeInsets.all(10),
+                    child: RaisedButton(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.5),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          showRC = false;
+                        });
+                      },
+                      color: Colors.red[400],
+                      child: Container(
+                        width: width / 13,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: <Widget>[
+                            Icon(
+                              Icons.close,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  AutoSizeText(
+                    "Report Card",
+                    textAlign: TextAlign.center,
+                    minFontSize: 24.0,
+                    style: GoogleFonts.asap(
+                      textStyle: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[850],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(10),
+                  ),
+                  Container(
+                    padding: EdgeInsets.all(10),
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100].withOpacity(.98),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        JsonTable(
+                          rcMap,
                         ),
                       ],
                     ),
@@ -397,13 +470,13 @@ class ExtraApp extends State<MyExtrasPage> {
                         padding: EdgeInsets.all(20),
                         child: Column(
                           children: [
-                            Text(
+                            AutoSizeText(
                               "GPA Calc",
+                              minFontSize: 20,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
                                 textStyle: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 22,
                                   color: Colors.white,
                                 ),
                               ),
@@ -413,7 +486,7 @@ class ExtraApp extends State<MyExtrasPage> {
                             ),
                             FaIcon(
                               FontAwesomeIcons.calculator,
-                              size: 110,
+                              size: width / 4,
                               color: Colors.white,
                             ),
                           ],
@@ -425,17 +498,17 @@ class ExtraApp extends State<MyExtrasPage> {
                             });
                             getGPA();
                             Map myList = {};
-                            var gList1 = await gpaRequest(
-                                (host + 'run?number=1').toString());
+                            var gList1 = await mainRequest(
+                                (host + 'runcalcinfo?number=1').toString());
                             var gradesList1 = json.decode(gList1);
-                            var gList2 = await gpaRequest(
-                                (host + 'run?number=2').toString());
+                            var gList2 = await mainRequest(
+                                (host + 'runcalcinfo?number=2').toString());
                             var gradesList2 = json.decode(gList2);
-                            var gList3 = await gpaRequest(
-                                (host + 'run?number=3').toString());
+                            var gList3 = await mainRequest(
+                                (host + 'runcalcinfo?number=3').toString());
                             var gradesList3 = json.decode(gList3);
-                            var gList4 = await gpaRequest(
-                                (host + 'run?number=4').toString());
+                            var gList4 = await mainRequest(
+                                (host + 'runcalcinfo?number=4').toString());
                             var gradesList4 = json.decode(gList4);
                             myList.addAll({
                               'Class Name 1': gradesList1["Averages"]
@@ -489,13 +562,13 @@ class ExtraApp extends State<MyExtrasPage> {
                         padding: EdgeInsets.all(20),
                         child: Column(
                           children: [
-                            Text(
+                            AutoSizeText(
                               "Schedule",
+                              minFontSize: 20,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
                                 textStyle: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 22,
                                   color: Colors.white,
                                 ),
                               ),
@@ -505,13 +578,16 @@ class ExtraApp extends State<MyExtrasPage> {
                             ),
                             FaIcon(
                               FontAwesomeIcons.calendarAlt,
-                              size: 110,
+                              size: width / 4,
                               color: Colors.white,
                             ),
                           ],
                         ),
                         onPressed: () async {
                           try {
+                            setState(() {
+                              isLoading = true;
+                            });
                             var scheduleList =
                                 await mainRequest(host + 'schedule');
                             if (unableAccess == false) {
@@ -541,6 +617,9 @@ class ExtraApp extends State<MyExtrasPage> {
                                           .toString(),
                                     });
                                   }
+                                  setState(() {
+                                    isLoading = false;
+                                  });
                                   String myVar = json.encode(finalList);
                                   scheduleMap = json.decode(myVar);
                                   showSchedule = true;
@@ -592,13 +671,13 @@ class ExtraApp extends State<MyExtrasPage> {
                         padding: EdgeInsets.all(20),
                         child: Column(
                           children: [
-                            Text(
+                            AutoSizeText(
                               "IPR",
+                              minFontSize: 20,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
                                 textStyle: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 23,
                                   color: Colors.white,
                                 ),
                               ),
@@ -608,13 +687,16 @@ class ExtraApp extends State<MyExtrasPage> {
                             ),
                             FaIcon(
                               FontAwesomeIcons.clipboardList,
-                              size: 110,
+                              size: width / 4,
                               color: Colors.white,
                             ),
                           ],
                         ),
                         onPressed: () async {
                           try {
+                            setState(() {
+                              isLoading = true;
+                            });
                             var iprList = await mainRequest(host + 'ipr');
                             if (unableAccess == false) {
                               setState(
@@ -640,6 +722,9 @@ class ExtraApp extends State<MyExtrasPage> {
                                           iprMap["Grade"][index].toString(),
                                     });
                                   }
+                                  setState(() {
+                                    isLoading = false;
+                                  });
                                   String myVar = json.encode(finalList);
                                   iprMap = json.decode(myVar);
                                   showIPR = true;
@@ -685,13 +770,13 @@ class ExtraApp extends State<MyExtrasPage> {
                         padding: EdgeInsets.all(20),
                         child: Column(
                           children: [
-                            Text(
+                            AutoSizeText(
                               "Report Card",
+                              minFontSize: 20,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
                                 textStyle: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 22,
                                   color: Colors.white,
                                 ),
                               ),
@@ -701,44 +786,73 @@ class ExtraApp extends State<MyExtrasPage> {
                             ),
                             FaIcon(
                               FontAwesomeIcons.fileAlt,
-                              size: 110,
+                              size: width / 4,
                               color: Colors.white,
                             ),
                           ],
                         ),
                         onPressed: () async {
+                          setState(() {
+                            isLoading = true;
+                          });
                           var rcList = await mainRequest(host + 'reportcard');
-                          setState(
-                            () {
-                              try {
+                          try {
+                            if (unableAccess == false) {
+                              setState(() {
                                 rcMap = json.decode(rcList);
-                                if (unableAccess == false) {
-                                  // Do once report card has released, leave it for now
-                                } else {
-                                  setState(() {
-                                    unableAccess = false;
-                                    error = true;
-                                  });
+                                List myKeys = rcMap.keys.toList();
+                                var finalList = [];
+                                int counter = 0;
+                                var myList = [];
+                                for (int index = 0;
+                                    index < rcMap[myKeys[0]].length;
+                                    index++) {
+                                  for (int val = 0;
+                                      val < myKeys.length;
+                                      val++) {
+                                    myList.add(rcMap[myKeys[val]]
+                                        [(counter + 1).toString()]);
+                                  }
+                                  counter++;
+                                  var myMap = {};
+                                  for (int val = 0;
+                                      val < myList.length;
+                                      val++) {
+                                    myMap.addAll({myKeys[val]: myList[val]});
+                                  }
+                                  finalList.add(myMap);
+                                  myList = [];
                                 }
-                              } on NoSuchMethodError {
                                 setState(() {
-                                  error = true;
+                                  isLoading = false;
                                 });
-                              } on FormatException {
-                                setState(() {
-                                  error = true;
-                                });
-                              } on Error {
-                                setState(() {
-                                  error = true;
-                                });
-                              } on Exception {
-                                setState(() {
-                                  error = true;
-                                });
-                              }
-                            },
-                          );
+                                String myVar = json.encode(finalList);
+                                rcMap = json.decode(myVar);
+                                showRC = true;
+                              });
+                            } else {
+                              setState(() {
+                                unableAccess = false;
+                                error = true;
+                              });
+                            }
+                          } on NoSuchMethodError {
+                            setState(() {
+                              error = true;
+                            });
+                          } on FormatException {
+                            setState(() {
+                              error = true;
+                            });
+                          } on Error {
+                            setState(() {
+                              error = true;
+                            });
+                          } on Exception {
+                            setState(() {
+                              error = true;
+                            });
+                          }
                         },
                         highlightColor: Colors.amber,
                       ),
@@ -761,6 +875,10 @@ class ExtraApp extends State<MyExtrasPage> {
             alignment: Alignment.center,
           ),
           Align(
+            child: rcInfo,
+            alignment: Alignment.center,
+          ),
+          Align(
             child: pullError,
             alignment: Alignment.center,
           ),
@@ -779,7 +897,7 @@ class MyGPAPage extends StatefulWidget {
 }
 
 class GPAPage extends State<MyGPAPage> {
-  var grade = TextEditingController();
+  final TextEditingController grade1 = TextEditingController();
   String uGPA1 = "";
   String uGPA2 = "";
   String wGPA1 = "";
@@ -810,9 +928,31 @@ class GPAPage extends State<MyGPAPage> {
   String finalU = "";
   bool isDiffW = false;
   bool isDiffU = false;
+  bool displayError = false;
+
+  void initState() {
+    super.initState();
+    grade1.addListener(() {
+      final text = grade1.text.toLowerCase();
+      grade1.value = grade1.value.copyWith(
+        text: text,
+        selection:
+            TextSelection(baseOffset: text.length, extentOffset: text.length),
+        composing: TextRange.empty,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+    SystemChrome.setEnabledSystemUIOverlays(
+        [SystemUiOverlay.top, SystemUiOverlay.bottom]);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.grey.withOpacity(.6),
+      statusBarColor: Colors.grey.withOpacity(.6),
+    ));
     List sem1Names = [];
     List sem1Grades = [];
     List sem2Names = [];
@@ -877,6 +1017,7 @@ class GPAPage extends State<MyGPAPage> {
           }
           if (classGrades1.length != 0) {
             finalGrades = classGrades1;
+            finalG = classGrades1;
           }
         } else if (myRandNum == 2) {
           if (randGPAWeights2.length == 0) {
@@ -895,6 +1036,7 @@ class GPAPage extends State<MyGPAPage> {
           }
           if (classGrades2.length != 0) {
             finalGrades = classGrades2;
+            finalG = classGrades2;
           }
         }
         for (int index = 0; index < myGpaW.length; index++) {
@@ -902,6 +1044,9 @@ class GPAPage extends State<MyGPAPage> {
           if (grade != null && grade != "" && grade != "N/A") {
             grade = grade.substring(0, grade.length - 1);
             if (!(double.parse(grade) < 70)) {
+              if (double.parse(grade) > 100) {
+                grade = "100.00";
+              }
               double val = (100 - double.parse(grade)) / 10;
               myGpaA.add((myGpaW[index] - val).toStringAsFixed(3));
             } else {
@@ -1001,6 +1146,7 @@ class GPAPage extends State<MyGPAPage> {
         unweightedCummGPA =
             (double.parse(uGPA1) + double.parse(uGPA2) + 0).toStringAsFixed(3);
       }
+
       int wCount = 0;
       int uCount = 0;
 
@@ -1079,6 +1225,9 @@ class GPAPage extends State<MyGPAPage> {
         if (grade != null && grade != "") {
           grade = grade.substring(0, grade.length - 1);
           if (!(double.parse(grade) < 70)) {
+            if (double.parse(grade) > 100) {
+              grade = "100.00";
+            }
             double val = (100 - double.parse(grade)) / 10;
             myGpaActual.add((myGpaWeights[index] - val).toStringAsFixed(3));
           } else {
@@ -1150,18 +1299,10 @@ class GPAPage extends State<MyGPAPage> {
       }
       unweightedGPA = (finalVar1 / count1).toStringAsFixed(3);
 
-      grade.text = finalGrades[indexVal];
+      grade1.text = finalGrades[indexVal];
 
-      if (myGpaWeights[indexVal] == 5.0) {
-        dropdownValue = 1;
-      } else if (myGpaWeights[indexVal] == 5.5) {
-        dropdownValue = 2;
-      } else if (myGpaWeights[indexVal] == 6.0) {
-        dropdownValue = 3;
-      }
-
-      if (grade.text.length != 0 && grade.text != null) {
-        grade.text = finalGrades[indexVal]
+      if (grade1.text.length != 0 && grade1.text != null) {
+        grade1.text = finalGrades[indexVal]
             .substring(0, finalGrades[indexVal].length - 1);
       }
       if (buttonVal == 1) {
@@ -1266,15 +1407,34 @@ class GPAPage extends State<MyGPAPage> {
       }
     }
 
+    bool _isNumeric(String s) {
+      if (s == null) {
+        return false;
+      }
+      return double.parse(s, (e) => null) != null ||
+          int.parse(s, onError: (e) => null) != null;
+    }
+
+    var wrongGrade = displayError
+        ? new Text(
+            'Please enter in a valid grade for the class.\n Enter in a numerical value (0 - 100).',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.red[600],
+            ),
+          )
+        : new Container();
+
     var showDiffW = isDiffW
         ? new Container(
             alignment: Alignment.center,
-            width: 67,
-            height: 26,
-            child: Text(
+            width: width / 6,
+            height: height / 29,
+            child: AutoSizeText(
               finalW,
               style: GoogleFonts.aBeeZee(
-                fontSize: 14,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -1287,7 +1447,7 @@ class GPAPage extends State<MyGPAPage> {
                       width: 3.5,
                     ),
                     borderRadius: BorderRadius.all(
-                      Radius.circular(12),
+                      Radius.circular(10),
                     ),
                   )
                 : BoxDecoration(),
@@ -1297,12 +1457,12 @@ class GPAPage extends State<MyGPAPage> {
     var showDiffU = isDiffU
         ? new Container(
             alignment: Alignment.center,
-            width: 67,
-            height: 26,
-            child: Text(
+            width: width / 6,
+            height: height / 29,
+            child: AutoSizeText(
               finalU,
               style: GoogleFonts.aBeeZee(
-                fontSize: 14,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -1325,43 +1485,48 @@ class GPAPage extends State<MyGPAPage> {
     var pullError = error
         ? new WillPopScope(
             onWillPop: _willPopCallback,
-            child: Container(
-              alignment: AlignmentDirectional.center,
-              decoration: BoxDecoration(
-                color: Colors.white70,
-              ),
-              child: AlertDialog(
-                title: Text(
-                  'Unable to Access GPA Calculations',
-                  style: GoogleFonts.roboto(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
                   ),
                 ),
-                content: Text(
-                  'Either you are currently logged out or something is wrong. Please login and/or try again later.',
-                  style: GoogleFonts.roboto(
-                    fontSize: 16,
-                  ),
-                ),
-                actions: <Widget>[
-                  FlatButton(
-                    child: Text(
-                      'OK',
-                      style: GoogleFonts.roboto(
-                        fontSize: 19.5,
-                        fontWeight: FontWeight.bold,
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
                       ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        error = false;
-                        Navigator.of(context).pop();
-                      });
-                    },
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 3,
+                        alignment: Alignment.center,
+                        child: AutoSizeText(
+                          'Grade Genius is unable to access GPA Calculations. Either you are currently logged out or something is wrong. Please login and/or try again later.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          error = false;
+                          Navigator.of(context).pop();
+                        });
+                      },
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           )
         : new Container();
@@ -1389,13 +1554,14 @@ class GPAPage extends State<MyGPAPage> {
                               borderRadius: BorderRadius.circular(12.5),
                             ),
                             onPressed: () {
+                              setState(() {});
                               setState(() {
                                 showGPAPage = false;
                               });
                             },
                             color: Colors.red[400],
                             child: Container(
-                              width: 25,
+                              width: width / 13,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(15),
                               ),
@@ -1413,15 +1579,15 @@ class GPAPage extends State<MyGPAPage> {
                           ),
                         ),
                         Container(
-                          padding: EdgeInsets.only(left: 45),
+                          padding: EdgeInsets.only(left: width / 35),
                           child: FloatingActionButton.extended(
                             heroTag: 1,
-                            label: Text(
+                            label: AutoSizeText(
                               'Sem 1',
+                              minFontSize: 14,
                               style: GoogleFonts.quicksand(
                                 textStyle: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 20,
                                   color: Colors.white,
                                 ),
                               ),
@@ -1441,15 +1607,16 @@ class GPAPage extends State<MyGPAPage> {
                           ),
                         ),
                         Container(
-                          padding: EdgeInsets.all(15),
+                          alignment: Alignment.bottomRight,
+                          padding: EdgeInsets.only(left: width / 30),
                           child: FloatingActionButton.extended(
                             heroTag: 2,
-                            label: Text(
+                            label: AutoSizeText(
                               'Sem 2',
+                              minFontSize: 14,
                               style: GoogleFonts.quicksand(
                                 textStyle: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 20,
                                   color: Colors.white,
                                 ),
                               ),
@@ -1473,24 +1640,24 @@ class GPAPage extends State<MyGPAPage> {
                     Column(
                       children: [
                         Container(
-                          width: 365,
+                          width: width / 1.1,
                           alignment: Alignment.center,
-                          child: Text(
+                          child: AutoSizeText(
                             "Semester " + buttonVal.toStringAsFixed(0) + " GPA",
+                            minFontSize: 27,
                             style: GoogleFonts.quicksand(
                               textStyle: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 33,
                                 color: Colors.grey[900],
                               ),
                             ),
                           ),
                         ),
                         Padding(
-                          padding: EdgeInsets.all(7),
+                          padding: EdgeInsets.all(6),
                         ),
                         Container(
-                          width: 375,
+                          width: width / 1.1,
                           alignment: Alignment.center,
                           padding: EdgeInsets.all(10),
                           decoration: ShapeDecoration(
@@ -1509,8 +1676,8 @@ class GPAPage extends State<MyGPAPage> {
                                     alignment: Alignment.topRight,
                                     children: [
                                       Container(
-                                        width: 120,
-                                        height: 85,
+                                        width: width / 3,
+                                        height: height / 10,
                                         alignment: Alignment.center,
                                         padding: EdgeInsets.all(10),
                                         child: RichText(
@@ -1519,7 +1686,7 @@ class GPAPage extends State<MyGPAPage> {
                                             style: GoogleFonts.quicksand(
                                               textStyle: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 32,
+                                                fontSize: 29,
                                                 color: Colors.white,
                                               ),
                                             ),
@@ -1536,13 +1703,13 @@ class GPAPage extends State<MyGPAPage> {
                                       showDiffW,
                                     ],
                                   ),
-                                  Text(
+                                  AutoSizeText(
                                     "Weighted",
+                                    minFontSize: 18,
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.quicksand(
                                       textStyle: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 20,
                                         color: Colors.black,
                                       ),
                                     ),
@@ -1559,8 +1726,8 @@ class GPAPage extends State<MyGPAPage> {
                                     children: [
                                       Container(
                                         alignment: Alignment.center,
-                                        width: 120,
-                                        height: 85,
+                                        width: width / 3,
+                                        height: height / 10,
                                         padding: EdgeInsets.all(10),
                                         child: RichText(
                                           text: TextSpan(
@@ -1568,7 +1735,7 @@ class GPAPage extends State<MyGPAPage> {
                                             style: GoogleFonts.quicksand(
                                               textStyle: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 32,
+                                                fontSize: 29,
                                                 color: Colors.white,
                                               ),
                                             ),
@@ -1585,13 +1752,13 @@ class GPAPage extends State<MyGPAPage> {
                                       showDiffU,
                                     ],
                                   ),
-                                  Text(
+                                  AutoSizeText(
                                     "Unweighted",
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.quicksand(
                                       textStyle: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 20,
+                                        fontSize: 18,
                                         color: Colors.black,
                                       ),
                                     ),
@@ -1604,18 +1771,18 @@ class GPAPage extends State<MyGPAPage> {
                       ],
                     ),
                     Padding(
-                      padding: EdgeInsets.all(5),
+                      padding: EdgeInsets.all(4),
                     ),
                     Container(
-                      width: 365,
+                      width: width / 1.1,
                       alignment: Alignment.center,
                       child: Text(
-                        "Click on each class to change configurations for weight and grade.",
+                        "Click on each class to change the weight and/or grade.",
                         textAlign: TextAlign.center,
                         style: GoogleFonts.quicksand(
                           textStyle: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                            fontSize: 14,
                             color: Colors.grey[600],
                           ),
                         ),
@@ -1625,92 +1792,109 @@ class GPAPage extends State<MyGPAPage> {
                       padding: EdgeInsets.all(3),
                     ),
                     Divider(
-                      indent: 13,
-                      endIndent: 13,
+                      indent: width / 27,
+                      endIndent: width / 27,
                       thickness: 2.4,
                       color: Colors.grey[900],
                     ),
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: finalNames.length,
-                        itemBuilder: (context, index) {
-                          return Container(
-                            alignment: Alignment.center,
-                            padding: EdgeInsets.only(
-                                bottom: 7.5, top: 7.5, left: 5.0, right: 5.0),
-                            child: InkWell(
-                              child: Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: Colors.amber[200],
-                                  border: Border.all(
+                      child: MediaQuery.removePadding(
+                        context: context,
+                        removeTop: true,
+                        child: ListView.builder(
+                          itemCount: finalNames.length,
+                          itemBuilder: (context, index) {
+                            return Container(
+                              alignment: Alignment.center,
+                              padding: EdgeInsets.only(
+                                  bottom: 2.5, top: 5.0, left: 7.0, right: 7.0),
+                              child: InkWell(
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
                                     color: Colors.amber[200],
-                                    width: 2.6,
+                                    border: Border.all(
+                                      color: Colors.amber[200],
+                                      width: 2.6,
+                                    ),
+                                    borderRadius: new BorderRadius.all(
+                                      Radius.circular(15),
+                                    ),
                                   ),
-                                  borderRadius: new BorderRadius.all(
-                                    Radius.circular(15),
-                                  ),
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      indexVal = index;
-                                      showWeights = true;
-                                    });
-                                  },
-                                  child: Container(
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.all(12),
-                                      title: AutoSizeText(
-                                        finalNames[index],
-                                        overflow: TextOverflow.ellipsis,
-                                        minFontSize: 20,
-                                        maxLines: 1,
-                                        style: GoogleFonts.quicksand(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                  child: InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        indexVal = index;
+                                        showWeights = true;
+                                        if (myGpaWeights[indexVal] == 5.0) {
+                                          dropdownValue = 1;
+                                        } else if (myGpaWeights[indexVal] ==
+                                            5.5) {
+                                          dropdownValue = 2;
+                                        } else if (myGpaWeights[indexVal] ==
+                                            6.0) {
+                                          dropdownValue = 3;
+                                        }
+                                      });
+                                    },
+                                    child: Container(
+                                      child: ListTile(
+                                        contentPadding: EdgeInsets.only(
+                                            left: 6,
+                                            right: 8,
+                                            top: 2,
+                                            bottom: 3),
+                                        title: AutoSizeText(
+                                          finalNames[index],
+                                          overflow: TextOverflow.ellipsis,
+                                          minFontSize: 17,
+                                          maxLines: 1,
+                                          style: GoogleFonts.quicksand(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
                                         ),
-                                      ),
-                                      subtitle: AutoSizeText(
-                                        "Weight: " +
-                                            myGpaWeights[index].toString(),
-                                        overflow: TextOverflow.ellipsis,
-                                        minFontSize: 16,
-                                        maxLines: 1,
-                                        style: GoogleFonts.quicksand(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.grey[700],
+                                        subtitle: AutoSizeText(
+                                          "Weight: " +
+                                              myGpaWeights[index].toString(),
+                                          overflow: TextOverflow.ellipsis,
+                                          minFontSize: 14,
+                                          maxLines: 1,
+                                          style: GoogleFonts.quicksand(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey[700],
+                                          ),
                                         ),
-                                      ),
-                                      trailing: Container(
-                                        padding: EdgeInsets.all(10),
-                                        child: RichText(
-                                          text: TextSpan(
-                                            text: myGpaActual[index],
-                                            style: GoogleFonts.quicksand(
-                                              textStyle: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 23,
-                                                color: Colors.white,
+                                        trailing: Container(
+                                          padding: EdgeInsets.all(10),
+                                          child: RichText(
+                                            text: TextSpan(
+                                              text: myGpaActual[index],
+                                              style: GoogleFonts.quicksand(
+                                                textStyle: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 21,
+                                                  color: Colors.white,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                        decoration: ShapeDecoration(
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(15),
+                                          decoration: ShapeDecoration(
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(15),
+                                            ),
+                                            color: Colors.amber[700],
                                           ),
-                                          color: Colors.amber[700],
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ],
@@ -1742,15 +1926,15 @@ class GPAPage extends State<MyGPAPage> {
                     ),
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  height: 500,
-                  width: 350,
+                  height: height / 1.2,
+                  width: width / 1.1,
                   child: Column(
                     children: [
                       Row(
                         children: [
                           Container(
                             padding: EdgeInsets.only(bottom: 10),
-                            width: 70,
+                            width: width / 5,
                             alignment: Alignment.topLeft,
                             child: RaisedButton(
                               shape: RoundedRectangleBorder(
@@ -1758,9 +1942,10 @@ class GPAPage extends State<MyGPAPage> {
                               ),
                               onPressed: () {
                                 setState(() {
-                                  grade.text = "";
+                                  grade1.text = "";
                                   dropdownValue = 1;
                                   showWeights = false;
+                                  displayError = false;
                                 });
                               },
                               color: Colors.red[400],
@@ -1790,16 +1975,16 @@ class GPAPage extends State<MyGPAPage> {
                       AutoSizeText(
                         finalNames[indexVal],
                         textAlign: TextAlign.center,
-                        minFontSize: 25,
+                        minFontSize: 22,
                         maxLines: 2,
                         style: GoogleFonts.quicksand(
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey[900],
+                          color: Colors.grey[800],
                           decoration: TextDecoration.underline,
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.all(12),
+                        padding: EdgeInsets.all(13),
                       ),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1807,11 +1992,11 @@ class GPAPage extends State<MyGPAPage> {
                         children: [
                           AutoSizeText(
                             "Weightage of Class:   ",
+                            minFontSize: 18,
                             textAlign: TextAlign.center,
                             style: GoogleFonts.quicksand(
                               fontWeight: FontWeight.bold,
                               color: Colors.grey[800],
-                              fontSize: 20,
                             ),
                           ),
                           DropdownButton(
@@ -1819,7 +2004,7 @@ class GPAPage extends State<MyGPAPage> {
                             style: GoogleFonts.quicksand(
                               fontWeight: FontWeight.bold,
                               color: Colors.grey[600],
-                              fontSize: 20,
+                              fontSize: 18,
                             ),
                             underline: Container(
                               height: 2,
@@ -1842,16 +2027,30 @@ class GPAPage extends State<MyGPAPage> {
                             onChanged: (value) {
                               setState(() {
                                 dropdownValue = value;
+                                double myWeight;
+                                if (dropdownValue == 1) {
+                                  myWeight = 5.0;
+                                } else if (dropdownValue == 2) {
+                                  myWeight = 5.5;
+                                } else {
+                                  myWeight = 6.0;
+                                }
+                                myGpaWeights[indexVal] = myWeight;
+                                if (buttonVal == 1) {
+                                  randGPAWeights1 = myGpaWeights;
+                                } else if (buttonVal == 2) {
+                                  randGPAWeights2 = myGpaWeights;
+                                }
                               });
                             },
                           ),
                         ],
                       ),
                       Padding(
-                        padding: EdgeInsets.all(5),
+                        padding: EdgeInsets.all(3),
                       ),
                       Container(
-                        width: 290,
+                        width: width / 1.2,
                         alignment: Alignment.center,
                         child: Row(
                           children: [
@@ -1859,7 +2058,7 @@ class GPAPage extends State<MyGPAPage> {
                               textAlign: TextAlign.center,
                               text: TextSpan(
                                 style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 18,
                                   color: Colors.black,
                                 ),
                                 children: <TextSpan>[
@@ -1868,7 +2067,7 @@ class GPAPage extends State<MyGPAPage> {
                                     style: GoogleFonts.quicksand(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.grey[800],
-                                      fontSize: 20,
+                                      fontSize: 18,
                                     ),
                                   ),
                                 ],
@@ -1881,7 +2080,7 @@ class GPAPage extends State<MyGPAPage> {
                               child: TextField(
                                 textAlign: TextAlign.center,
                                 maxLines: 1,
-                                controller: grade,
+                                controller: grade1,
                                 decoration: new InputDecoration(
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius:
@@ -1893,18 +2092,49 @@ class GPAPage extends State<MyGPAPage> {
                                 ),
                                 style: GoogleFonts.roboto(
                                   color: Colors.grey[800],
-                                  fontSize: 19,
+                                  fontSize: 17,
                                 ),
+                                onEditingComplete: () {
+                                  setState(() {
+                                    displayError = false;
+                                  });
+                                  if ((_isNumeric(grade1.text) == true &&
+                                          (double.parse(grade1.text) >= 0 &&
+                                              double.parse(grade1.text) <=
+                                                  100)) ||
+                                      grade1.text == "") {
+                                    if (grade1.text.contains("%") == false &&
+                                        grade1.text != "") {
+                                      grade1.text += "%";
+                                    }
+                                    finalGrades[indexVal] = grade1.text;
+                                  } else {
+                                    setState(() {
+                                      displayError = true;
+                                    });
+                                  }
+                                  if (buttonVal == 1) {
+                                    setState(() {
+                                      classGrades1 = finalGrades;
+                                    });
+                                  } else if (buttonVal == 2) {
+                                    setState(() {
+                                      classGrades2 = finalGrades;
+                                    });
+                                  }
+                                  FocusScope.of(context)
+                                      .requestFocus(FocusNode());
+                                },
                               ),
                             ),
                             Padding(
                               padding: EdgeInsets.all(7),
                             ),
-                            Text(
+                            AutoSizeText(
                               '%',
+                              minFontSize: 18,
                               style: GoogleFonts.roboto(
                                 color: Colors.grey[800],
-                                fontSize: 19,
                               ),
                             ),
                           ],
@@ -1926,14 +2156,14 @@ class GPAPage extends State<MyGPAPage> {
                               style: GoogleFonts.quicksand(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.grey[800],
-                                fontSize: 20,
+                                fontSize: 17,
                               ),
                             ),
                             TextSpan(
                               text: myGpaActual[indexVal],
                               style: GoogleFonts.roboto(
                                 color: Colors.grey[800],
-                                fontSize: 19,
+                                fontSize: 17,
                               ),
                             ),
                           ],
@@ -1955,7 +2185,7 @@ class GPAPage extends State<MyGPAPage> {
                               style: GoogleFonts.quicksand(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.grey[800],
-                                fontSize: 20,
+                                fontSize: 17,
                               ),
                             ),
                             TextSpan(
@@ -1963,51 +2193,60 @@ class GPAPage extends State<MyGPAPage> {
                                   .toString(),
                               style: GoogleFonts.roboto(
                                 color: Colors.grey[800],
-                                fontSize: 19,
+                                fontSize: 17,
                               ),
                             ),
                           ],
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.all(13),
+                        padding: EdgeInsets.all(7),
+                      ),
+                      wrongGrade,
+                      Padding(
+                        padding: EdgeInsets.all(7),
                       ),
                       RaisedButton(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18.0),
                         ),
                         onPressed: () async {
-                          double myWeight;
-                          if (dropdownValue == 1) {
-                            myWeight = 5.0;
-                          } else if (dropdownValue == 2) {
-                            myWeight = 5.5;
-                          } else {
-                            myWeight = 6.0;
+                          if ((_isNumeric(grade1.text) == true &&
+                                  (double.parse(grade1.text) >= 0 &&
+                                      double.parse(grade1.text) <= 100)) ||
+                              grade1.text == "") {
+                            if ((_isNumeric(grade1.text) == true &&
+                                    (double.parse(grade1.text) >= 0 &&
+                                        double.parse(grade1.text) <= 100)) ||
+                                grade1.text == "") {
+                              if (grade1.text.contains("%") == false &&
+                                  grade1.text != "") {
+                                grade1.text += "%";
+                              }
+                              finalGrades[indexVal] = grade1.text;
+                            } else {
+                              setState(() {
+                                displayError = true;
+                              });
+                            }
+                            if (buttonVal == 1) {
+                              setState(() {
+                                classGrades1 = finalGrades;
+                              });
+                            } else if (buttonVal == 2) {
+                              setState(() {
+                                classGrades2 = finalGrades;
+                              });
+                            }
+                            setState(() {
+                              displayError = false;
+                              showWeights = false;
+                            });
                           }
-                          myGpaWeights[indexVal] = myWeight;
-                          if (buttonVal == 1) {
-                            randGPAWeights1 = myGpaWeights;
-                          } else if (buttonVal == 2) {
-                            randGPAWeights2 = myGpaWeights;
-                          }
-                          if (grade.text.contains("%") == false &&
-                              grade.text != "") {
-                            grade.text += "%";
-                          }
-                          finalGrades[indexVal] = grade.text;
-                          if (buttonVal == 1) {
-                            classGrades1 = finalGrades;
-                          } else if (buttonVal == 2) {
-                            classGrades2 = finalGrades;
-                          }
-                          setState(() {
-                            showWeights = false;
-                          });
                         },
                         color: Colors.green,
                         child: Container(
-                          width: 200,
+                          width: width / 1.9,
                           padding: EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
@@ -2015,10 +2254,10 @@ class GPAPage extends State<MyGPAPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: <Widget>[
-                              Text(
+                              AutoSizeText(
                                 'Continue',
+                                minFontSize: 18,
                                 style: TextStyle(
-                                  fontSize: 20,
                                   color: Colors.white,
                                 ),
                               ),
@@ -2041,118 +2280,121 @@ class GPAPage extends State<MyGPAPage> {
     var showExtraInfo = showInfo
         ? new WillPopScope(
             onWillPop: _willPopCallback,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.85),
-              ),
-              child: AlertDialog(
-                title: Text(
-                  'Note',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.roboto(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
                   ),
                 ),
-                content: Container(
-                  height: 500,
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          style: TextStyle(
-                            fontSize: 17,
-                            color: Colors.black,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: 'GPA Calculations: ',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(
-                              text:
-                                  'GPA is calculated only for students who take high school classes. However, Grade Genius allows all students to calculate their GPA. Please note that this is not a final or accurate GPA; it is just a prediction.',
-                            ),
-                          ],
-                        ),
-                      ),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          text: '\n',
-                          style: TextStyle(
-                            fontSize: 17,
-                            color: Colors.black,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: 'GPA Weightage: ',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(
-                              text:
-                                  'Below is the weightage of high school classes in accordance with FISD GPA Policies. The weighted GPA (out of 6.0) is based on the 2023 and beyond GPA Calculations; however, Grade Genius may provide previous GPA Calulcations also. The unweighted GPA (all classes out of 4.0) is based on CollegeBoard GPA standards.',
-                            ),
-                          ],
-                        ),
-                      ),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          text: '',
-                          style: TextStyle(
-                            fontSize: 17,
-                            color: Colors.black,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: '\n2023 and beyond Weighted GPA:\n',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(
-                              text: '• AP Classes = 6.0',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '\n• Pre-AP Classes = 5.5',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '\n• On-Level Classes = 5.0',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: <Widget>[
-                  FlatButton(
-                    child: Text(
-                      'OK',
-                      style: GoogleFonts.roboto(
-                        fontSize: 19.5,
-                        fontWeight: FontWeight.bold,
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
                       ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        showInfo = false;
-                      });
-                    },
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 1.4,
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: 'GPA Calculations: ',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  TextSpan(
+                                    text:
+                                        'GPA is calculated only for students who take high school classes. However, Grade Genius allows all students to calculate their GPA. Please note that this is not a final or accurate GPA; it is just a prediction.',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                text: '\n',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: 'GPA Weightage: ',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  TextSpan(
+                                    text:
+                                        'Below is the weightage of high school classes in accordance with FISD GPA Policies. The weighted GPA (out of 6.0) is based on the 2023 and beyond GPA Calculations; however, Grade Genius may provide previous GPA Calulcations also. The unweighted GPA (all classes out of 4.0) is based on CollegeBoard GPA standards.',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                text: '',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: '\n2023 and beyond Weighted GPA:\n',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  TextSpan(
+                                    text: '• AP Classes = 6.0',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: '\n• Pre-AP Classes = 5.5',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: '\n• On-Level Classes = 5.0',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          showInfo = false;
+                        });
+                      },
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           )
         : new Container();
@@ -2167,10 +2409,11 @@ class GPAPage extends State<MyGPAPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 Padding(
-                  padding: EdgeInsets.all(10),
+                  padding: EdgeInsets.all(5),
                 ),
                 Container(
-                  padding: EdgeInsets.all(15),
+                  padding:
+                      EdgeInsets.only(top: 11, bottom: 5, left: 8, right: 8),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2185,7 +2428,7 @@ class GPAPage extends State<MyGPAPage> {
                           },
                           color: Colors.red[400],
                           child: Container(
-                            width: 25,
+                            width: width / 11,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(15),
                             ),
@@ -2212,7 +2455,7 @@ class GPAPage extends State<MyGPAPage> {
                             },
                             icon: Icon(
                               Icons.info_outline,
-                              size: 39,
+                              size: width / 11,
                               color: Colors.black87,
                             ),
                           ),
@@ -2223,13 +2466,13 @@ class GPAPage extends State<MyGPAPage> {
                 ),
                 Container(
                   alignment: Alignment.center,
-                  child: Text(
+                  child: AutoSizeText(
                     "Predict Your GPA",
+                    minFontSize: 25,
                     style: GoogleFonts.quicksand(
                       textStyle: TextStyle(
                         decoration: TextDecoration.underline,
                         fontWeight: FontWeight.bold,
-                        fontSize: 34,
                         color: Colors.grey[900],
                       ),
                     ),
@@ -2239,28 +2482,28 @@ class GPAPage extends State<MyGPAPage> {
                   padding: EdgeInsets.all(6),
                 ),
                 Container(
-                  width: 365,
+                  width: width / 1.1,
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Cummulative GPA Projection:",
+                  child: AutoSizeText(
+                    "Cummulative GPA:",
+                    minFontSize: 22,
                     style: GoogleFonts.quicksand(
                       textStyle: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 25,
                         color: Colors.grey[900],
                       ),
                     ),
                   ),
                 ),
                 Container(
-                  width: 365,
+                  width: width / 1.1,
                   alignment: Alignment.centerLeft,
-                  child: Text(
+                  child: AutoSizeText(
                     "This Year + Previous Years",
+                    minFontSize: 16,
                     style: GoogleFonts.quicksand(
                       textStyle: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 20,
                         color: Colors.grey[700],
                       ),
                     ),
@@ -2270,7 +2513,7 @@ class GPAPage extends State<MyGPAPage> {
                   padding: EdgeInsets.all(3),
                 ),
                 Container(
-                  width: 375,
+                  width: width / 1.1,
                   alignment: Alignment.center,
                   padding: EdgeInsets.all(10),
                   decoration: ShapeDecoration(
@@ -2293,7 +2536,7 @@ class GPAPage extends State<MyGPAPage> {
                                 style: GoogleFonts.quicksand(
                                   textStyle: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 32,
+                                    fontSize: 28,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -2303,7 +2546,7 @@ class GPAPage extends State<MyGPAPage> {
                                     style: GoogleFonts.quicksand(
                                       textStyle: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 17,
+                                        fontSize: 16,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -2318,13 +2561,13 @@ class GPAPage extends State<MyGPAPage> {
                               color: Colors.amber[700],
                             ),
                           ),
-                          Text(
-                            "Weighted\nGPA",
+                          AutoSizeText(
+                            "Weighted",
+                            minFontSize: 19,
                             textAlign: TextAlign.center,
                             style: GoogleFonts.quicksand(
                               textStyle: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 23,
                                 color: Colors.black,
                               ),
                             ),
@@ -2332,7 +2575,7 @@ class GPAPage extends State<MyGPAPage> {
                         ],
                       ),
                       Padding(
-                        padding: EdgeInsets.all(6),
+                        padding: EdgeInsets.all(5),
                       ),
                       Column(
                         children: [
@@ -2344,7 +2587,7 @@ class GPAPage extends State<MyGPAPage> {
                                 style: GoogleFonts.quicksand(
                                   textStyle: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 32,
+                                    fontSize: 28,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -2354,7 +2597,7 @@ class GPAPage extends State<MyGPAPage> {
                                     style: GoogleFonts.quicksand(
                                       textStyle: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 17,
+                                        fontSize: 16,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -2369,13 +2612,13 @@ class GPAPage extends State<MyGPAPage> {
                               color: Colors.amber[700],
                             ),
                           ),
-                          Text(
-                            "Unweighted\nGPA",
+                          AutoSizeText(
+                            "Unweighted",
+                            minFontSize: 19,
                             textAlign: TextAlign.center,
                             style: GoogleFonts.quicksand(
                               textStyle: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 23,
                                 color: Colors.black,
                               ),
                             ),
@@ -2386,31 +2629,31 @@ class GPAPage extends State<MyGPAPage> {
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.all(11),
+                  padding: EdgeInsets.all(7),
                 ),
                 Container(
-                  width: 365,
+                  width: width / 1.1,
                   alignment: Alignment.centerLeft,
-                  child: Text(
+                  child: AutoSizeText(
                     "GPA in HAC:",
+                    minFontSize: 22,
                     style: GoogleFonts.quicksand(
                       textStyle: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 25,
                         color: Colors.grey[900],
                       ),
                     ),
                   ),
                 ),
                 Container(
-                  width: 365,
+                  width: width / 1.1,
                   alignment: Alignment.centerLeft,
-                  child: Text(
+                  child: AutoSizeText(
                     "From Transcript",
+                    minFontSize: 16,
                     style: GoogleFonts.quicksand(
                       textStyle: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 20,
                         color: Colors.grey[700],
                       ),
                     ),
@@ -2420,7 +2663,7 @@ class GPAPage extends State<MyGPAPage> {
                   padding: EdgeInsets.all(3),
                 ),
                 Container(
-                  width: 375,
+                  width: width / 1.1,
                   padding: EdgeInsets.all(10),
                   decoration: ShapeDecoration(
                     shape: RoundedRectangleBorder(
@@ -2436,14 +2679,14 @@ class GPAPage extends State<MyGPAPage> {
                         alignment: Alignment.center,
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              "Weighted GPA:       ",
+                            AutoSizeText(
+                              "Weighted GPA:",
                               style: GoogleFonts.quicksand(
                                 textStyle: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 22,
+                                  fontSize: 19,
                                   color: Colors.grey[900],
                                 ),
                               ),
@@ -2456,7 +2699,7 @@ class GPAPage extends State<MyGPAPage> {
                                   style: GoogleFonts.quicksand(
                                     textStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 25,
+                                      fontSize: 22,
                                       color: Colors.white,
                                     ),
                                   ),
@@ -2473,8 +2716,8 @@ class GPAPage extends State<MyGPAPage> {
                         ),
                       ),
                       Divider(
-                        indent: 13,
-                        endIndent: 13,
+                        indent: width / 35,
+                        endIndent: width / 35,
                         thickness: 2.4,
                         color: Colors.grey[900],
                       ),
@@ -2482,14 +2725,14 @@ class GPAPage extends State<MyGPAPage> {
                         alignment: Alignment.center,
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              "Unweighted GPA:   ",
+                            AutoSizeText(
+                              "Unweighted GPA:",
+                              minFontSize: 19,
                               style: GoogleFonts.quicksand(
                                 textStyle: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 22,
                                   color: Colors.grey[900],
                                 ),
                               ),
@@ -2502,7 +2745,7 @@ class GPAPage extends State<MyGPAPage> {
                                   style: GoogleFonts.quicksand(
                                     textStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 25,
+                                      fontSize: 22,
                                       color: Colors.white,
                                     ),
                                   ),
@@ -2522,25 +2765,26 @@ class GPAPage extends State<MyGPAPage> {
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.all(12),
+                  padding: EdgeInsets.all(7),
                 ),
-                Text(
+                AutoSizeText(
                   "Changes are only temporary and will be reverted to original once this page is closed.",
+                  minFontSize: 13,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.quicksand(
                     textStyle: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 15,
                       color: Colors.grey[600],
                     ),
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.all(6),
+                  padding: EdgeInsets.all(5),
                 ),
                 InkWell(
                   child: Container(
-                    width: 375,
+                    width: width / 1.1,
+                    height: height / 15,
                     alignment: Alignment.center,
                     padding: EdgeInsets.all(10),
                     decoration: ShapeDecoration(
@@ -2549,12 +2793,12 @@ class GPAPage extends State<MyGPAPage> {
                       ),
                       color: Colors.amber[200],
                     ),
-                    child: Text(
+                    child: AutoSizeText(
                       "Click to View More",
+                      minFontSize: 19,
                       style: GoogleFonts.quicksand(
                         textStyle: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 25,
                           color: Colors.grey[900],
                         ),
                       ),
