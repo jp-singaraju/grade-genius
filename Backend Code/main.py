@@ -22,6 +22,7 @@ secret_key = b'\xad7\xe7\x04\xb6^\x9a\x95\xb97k\xdd\x06w\x00\xc7BlX\xc0\x88JBM\x
 app.config['SECRET_KEY'] = secret_key
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['FLASK_ENV'] = 'production'
+app.config['JSON_SORT_KEYS'] = False
 
 # define users and headers
 headers = {
@@ -141,6 +142,118 @@ def login():
             return jsonify({"status": "error", "msg": "fisd server down"}), 404
     except (AttributeError, KeyError, TypeError, ValueError, IndexError):
         return jsonify({"status": "error", "msg": "fisd server down"}), 404
+
+
+# defines the app route for report run to get gpa calc info
+@app.route('/runcalcinfo', methods=['GET'])
+# function in order to get run info for gpa calculator
+def calc_get_data():
+    try:
+        # report run dict
+        report_dict = {'gpa report run': str(request.args['number'])}
+
+        # gets report run from users input
+        report_run = report_dict['gpa report run']
+
+        # define session variables
+        session['server_status'] = False
+        session['nosvr'] = False
+
+        # after timer is done, complete this function
+        @copy_current_request_context
+        def time_exceed(bool):
+            # if False or server error
+            if not bool:
+                session['nosvr'] = True
+                timer.cancel()
+            else:
+                timer.cancel()
+
+        # sets timer for 22 seconds
+        timer = threading.Timer(14, time_exceed, [session['server_status']])
+        timer.start()
+
+        # checks if report run is in session, when opening app
+        # defines the link
+        grade_site = "https://hac.friscoisd.org/HomeAccess/Content/Student/Assignments.aspx"
+
+        # sets the dictionary for the form
+        payload = {
+            "__EVENTTARGET": "ctl00$plnMain$btnRefreshView",
+            "__VIEWSTATE": "e69pCkQ6DDWYmckQvmZnCqnTB+JjussjBFdovwrP05kwZMeDfEf0rPfS0Yar2+Fb21UnPAscpf5MsGZqUylxwFWZr8p+uuKGEwUmYRI2Q64mgzEuD5/vnu8pfOSl"
+                           "+GMF4RkpkUAQzS2guNSeD3HDk69BfiY+KmeEu9gf6a9eCy4TMEtpwHW8is21rgB7yZBuFvVzOxWgH1v7wSf1MHH3U01qeDQiondHF/TctIGAnVcJFwP"
+                           "+uTUtC/LZUfI269H1RHrx4l0AOBVa6AgQdb8CYC1DelOsApEDpga8uTX0gGpEqfsUyLVzEC4/cud7gMBVQ3Uc000aMHqS3V1yg7al20rkL+rUyDJpszeJ5S"
+                           "ts26TOPeJDubniO6Ykkmbx0jIJbH1iR777JRwnMj4Xt0XgQ5/MCnIoAQToQqoc/0CUjOset7jIEzURKkpYA59AJHr4Y/ZBHBGTf4W4n93mSS+YP5Vo7VD1B1dVEIbgEVz9G8MEh"
+                           "+eVkCDxwdPK5JzggmbzvxY7D1cfgTyKmGBVBiVNzmgOVjrYF4a0NDubfs+9xloZwa+nakwWy+aDOaTTdPO71bz/oZp4OOrAsI4ODj/NfltgwZLma1PyR0K32ap+"
+                           "uirb8jORcRnXX+7XrOEF7/0L5nPL6CfUnwFQFW3Fk8x4HIWBaempULPYG9qCQrXepsm5xg7sRbXesB8bcI6VWDlbMcXqEDFyksuhxvQCfpvF1FRIjWEDCPOg5DfZQkNsC"
+                           "g5ZKT8z0VEjuBeCafg/gaIxtgrcmjPx6+HeW103A3gBjXPK+I3G7pJIE6qnf2YOq26E0wLVXD4Ic3Z/tOZ/ZBCGbAE0NsvbfH8aHgs19lQ0qJ5uy513iLseed1rZYEByxdqiJ"
+                           "kbj8WCRZEIFh92FiUvUexuc1PcDySQ61V+gGU58CAffPTwulV3RshoiYF7sC3NRpycV1GWdJg0bQhKHzDowWe/J84oc0cWnsfDEkcWor4hkK6rvHM/qOEMInigoeoiR3+bAU"
+                           "FPwqTuEN6NtGR5Emzz1pbkDN3c99DYjFMR9QtbdCrKsjH9QOWD2SBxsZH3yjlM05FCsm0XohpNtGmJp+OdwC2CeiPMNXZOi2ozPqjhHwj3eWJAwwtyyuHHhboXvbOFmgjuaC4L"
+                           "+kAkJNLnLcrtdPu6+fQKtYTlUW2IF462vvLu+QeJk9KCvbjiXwmeDwKKFZdBGGOSWGckzcnqjGO6Q48m4qkaNGDtaHS8DMY+AV6DgRDVIzaQDIN52OkIafozR/5HANX"
+                           "ZxJOWXaLwDfPQKk3/irwMdAQQvw1MIX4afmcdhl7/V6d9ozh0PU9ZbM91FmB7amLBUUDaHBpjdinTe+yDbtHCwQtQrg8r5u/qkRexoRFjgn4cnNzjs2QKY2GZY85pTO7cLkHE"
+                           "3Y3CNidHIHsq7+nchNNHu6/h//QggyjiSyEYaTRCELKHQf9kbXYp4l9aj6w5YvHu4cUVtCGb06So9WNJySV5M7ulm/U2/KOJb+wbvBRE1T2nhH8ibENK6caF+5kaq9Oshnwr"
+                           "4QpGt0WTf85ZbmJpL0/rBb+NQsSTuCXj7q8y635Ba+hTR66ovJa45q9CMoK5Lo0L3/ZnM8qdvECzmxy59U+hiki3aoq3zXhGyMdH85xzamj4tTIcQUcIOq6XOA69crIeFoc0k"
+                           "HnRbQ1oLyUtuqelS/a/Ch8WE5psGR1DDMsjna64vKWS7JEkm33tJ8Kdy+lRqA24Z8i7DnT1OvOnfOiQGZPl67RpxZfmdc4pzvP/le3TAOqpgagaRBxOtyZcIKZY6uLN6pDFJimr"
+                           "MXcfeOM9inzVbCGKmqZN2PQazrN9ZjQ=",
+            "__VIEWSTATEGENERATOR": "B0093F3C",
+            "__EVENTVALIDATION": "bELah0Vt48qlV7YUIDZbmPQIQhg66EDLI4Zkw79rKB6Kf/iK7EzHNwWYUFSwnSY4k2trIkNKWuRkNo3UtWd7C6Z9/U9KNZviyLtV4cHtyoZtGJNtATfSXw0y3cdFJMmoK"
+                                 "zmWFhsMvYkrPE9k786yK4QgLHOoMZhRKGQHNPiLS4iehScdP3vTe9138mFtDv84Z7Ppy46Kl48g47Nc7oZksB6OJ4RlQEQCbkA23e0RyRoklXhPfDBIBLzsefW3n+pMl"
+                                 "4vEiHT43stnPfzfZ9Maxf7lQlu+rkexqOFJksrL1VR5l7G2Kp5Dv8sAKJuEHTWoisXI3uv6CTnweH7UCMz2bUv/qyMiATAElJCMxXZrGDPv5yDkijxjRhrsm6Fvu7VNxBC"
+                                 "aIVr2KT4l6NQmzQI5LUOGJ1R1+3hsTL7WuAryzD01A+VEv+4P1rIosX8c8G5L5/i88gKm2JKct2tAC0NbzYSAbcaOKyJZ7ehWQRk9GlLwGTIGhB6YgLuP+BAIbS+KxhG+H68s"
+                                 "yqseLpdSZ9mXD2/tuBSHN6Ijlno3+fpoKZMXDFgr5kgzmpA6eTYmClBRwULTlQgdJ+cSV8GaiwDZCfxD6BYgTicFitSW93Yj37JpCO/KY2zyPGrBc+Mk/vEUn151BhCRm"
+                                 "On8X/sZbm6DFrFj17LwAya2Wt05b7FBW4dx0GkkyQE52ZZIQYSEnaL9yJoeeH4kHZhNT6qNh8YCsEYQzZ4zYfs2iyCJJNXUbBo/gz7Rmcg4D7pXadI6q/XhcMgRMOVf2XliL+ZeF"
+                                 "JM/RP0C+YmfwuwC0quej/yaqTJ+SqS3cg8AYoyZFaanEpk8Fn8nSrkoKnZ65jT7bLu/uMgne9gOOK8Us142aNjGXtOGXLw/PIawyb/mfuzNDxvtSNYJL0TEQ19r2xXgh4hyX"
+                                 "BN0WoFxhRyWo7D2pNvpEm912TRcXDGHvaPq4EtAr8Vi0X5TUUj8BI7OfNeOeyu2KW/Vj2OL68AhWGNWYAM8nww2zvo0jNRhXFKhIxowB87qFJ+Ung9D+crKR276nmBBaLMfpPkj"
+                                 "pTDcLBOC9VeWAHC79oPZ4AE6GgDjXhbI+vXGsCgU5H6IvwWpEjfeaEZLMGKLThy37ycURE8PUCGWWiEeyakViztT5lhAvwdjsd4ia3d1OioIF5Hv8n7ftLNZkt26YivuumzqG/"
+                                 "Pm6EFz2u/dbITddni9rrr7M2pjIZ299Z+mUVJzXrWTWyzhKIekBObNAWCmOdkCGOh11XcnoubbogTbtcP5yF6VCCbBIShhB4L+V9D43a+EAvp2WU6NNsX7CcCMu/g6RLIR14cY6"
+                                 "36au7+XtCC0kLKtj9vRJcIMn6kwqW9tyt7QLp2jY0VSriszwboEGVGSDvyB+Xn3GLR/7Gx8KOBpK6NVQBTmpoAOrKjmd7FWrZzXoASv+lxuDuWBXThWoX+K9Wn0nCOL5as8J5z"
+                                 "72P+vHbkIDiZTHVbumkAqJews76rEukB4skvln8hmHJDCqMZRAWgA2aBpFk10g8cV2V/Enom1XaT0deglfJjaX1kwYSsEfHmpsa8mMKubQVobSf36GVI9NOX/CychnQzVqaAkwD"
+                                 "9nGO5rLHLrQHKA66IHbo7pasGzxGBYBYBGIDXtUhGmDMUJB1W2pdk=",
+            "ctl00$plnMain$ddlReportCardRuns": report_run + "-2020"
+        }
+
+        # report card-run posts and gets info from updated run
+        r_classes = session_hac.post(grade_site, data=payload, cookies=session['hac cookies'], headers=headers)
+        classes_text = r_classes.content
+        soup = BeautifulSoup(classes_text, "lxml")
+
+        # sets the session to true
+        session['server_status'] = True
+
+        # if nosvr is False
+        if session['nosvr']:
+            return jsonify({"status": "error", "msg": "fisd server down"}), 404
+
+        # finds all <a> tabs in the class specified
+        a = soup.find_all("a", {"class": "sg-header-heading"})
+
+        # get and set class names
+        class_name = []
+        class_score = []
+        class_avg = []
+        for i in range(len(a)):
+            class_name.append(" ".join((a[i].text.rstrip().split())[3:]))
+
+        # find <span> tab in specified class
+        score = soup.find_all("span", {"class": "sg-header-heading sg-right"})
+
+        # create a list by extracting text from each <span> tab
+        for i in range(len(score)):
+            class_score.append(score[i].text)
+
+        # create a average grades list by splitting and taking the second substring if class score not blank
+        for i in range(len(class_score)):
+            if class_score[i] == "":
+                class_avg.append("")
+            else:
+                class_avg.append((class_score[i].split(" "))[2])
+
+        # creates a dict with list class_name and class_avg and return the json file in flask
+        dict_class = {'Class Name': class_name, 'Class Average': class_avg}
+
+        return jsonify({"Averages": dict_class})
+    except (AttributeError, KeyError, TypeError, ValueError, IndexError):
+        return jsonify({"status": "error", "msg": "unable to receive info now, please retry"})
 
 
 # defines the app route for report run
@@ -592,6 +705,14 @@ def gpa():
             return jsonify(gpa_dict)
     except (AttributeError, KeyError, TypeError, ValueError):
         return jsonify({"status": "error", "msg": "unable to receive info now, please retry"}), 404
+
+
+@app.route("/logout")
+def logout():
+    logoff_link = "https://hac.friscoisd.org/HomeAccess/Account/Logoff"
+    session.get(logoff_link)
+    session.clear()
+    return jsonify({"status": "success", "msg": "logged out"})
 
 
 # runs the python flask apps
