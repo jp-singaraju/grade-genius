@@ -1106,9 +1106,8 @@ class _LoginPage extends State<MyLoginPage> {
                   ),
                 ),
                 Image.asset(
-                  'assets/AtomImage.JPG',
-                  width: width / 2.4,
-                  height: height / 4.8,
+                  'assets/IconLogo.png',
+                  height: height / 4.5,
                 ),
                 Container(
                   alignment: Alignment.center,

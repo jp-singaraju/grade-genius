@@ -1825,6 +1825,8 @@ class GPAPage extends State<MyGPAPage> {
                                     onTap: () {
                                       setState(() {
                                         indexVal = index;
+                                      });
+                                      setState(() {
                                         showWeights = true;
                                         if (myGpaWeights[indexVal] == 5.0) {
                                           dropdownValue = 1;
@@ -2027,6 +2029,8 @@ class GPAPage extends State<MyGPAPage> {
                             onChanged: (value) {
                               setState(() {
                                 dropdownValue = value;
+                              });
+                              setState(() {
                                 double myWeight;
                                 if (dropdownValue == 1) {
                                   myWeight = 5.0;
@@ -2040,6 +2044,15 @@ class GPAPage extends State<MyGPAPage> {
                                   randGPAWeights1 = myGpaWeights;
                                 } else if (buttonVal == 2) {
                                   randGPAWeights2 = myGpaWeights;
+                                }
+                                if (buttonVal == 1) {
+                                  setState(() {
+                                    classGrades1 = finalGrades;
+                                  });
+                                } else if (buttonVal == 2) {
+                                  setState(() {
+                                    classGrades2 = finalGrades;
+                                  });
                                 }
                               });
                             },
