@@ -1073,28 +1073,26 @@ class GPAPage extends State<MyGPAPage> {
           String grade = finalG[index];
           if (grade != null && grade != "") {
             grade = grade.substring(0, grade.length - 1);
-            if (double.parse(grade) >= 94) {
+            if (double.parse(grade) >= 93) {
               uList.add(4.0);
             } else if (double.parse(grade) >= 90) {
               uList.add(3.7);
             } else if (double.parse(grade) >= 87) {
               uList.add(3.3);
-            } else if (double.parse(grade) >= 84) {
+            } else if (double.parse(grade) >= 83) {
               uList.add(3.0);
             } else if (double.parse(grade) >= 80) {
               uList.add(2.7);
             } else if (double.parse(grade) >= 77) {
               uList.add(2.3);
-            } else if (double.parse(grade) >= 74) {
+            } else if (double.parse(grade) >= 73) {
               uList.add(2.0);
             } else if (double.parse(grade) >= 70) {
               uList.add(1.7);
             } else if (double.parse(grade) >= 67) {
               uList.add(1.3);
-            } else if (double.parse(grade) >= 64) {
+            } else if (double.parse(grade) >= 65) {
               uList.add(1.0);
-            } else if (double.parse(grade) >= 60) {
-              uList.add(0.7);
             } else if (double.parse(grade) >= 0) {
               uList.add(0.0);
             }
@@ -1255,28 +1253,26 @@ class GPAPage extends State<MyGPAPage> {
         String grade = finalGrades[index];
         if (grade != null && grade != "") {
           grade = grade.substring(0, grade.length - 1);
-          if (double.parse(grade) >= 94) {
+          if (double.parse(grade) >= 93) {
             unweightedList.add(4.0);
           } else if (double.parse(grade) >= 90) {
             unweightedList.add(3.7);
           } else if (double.parse(grade) >= 87) {
             unweightedList.add(3.3);
-          } else if (double.parse(grade) >= 84) {
+          } else if (double.parse(grade) >= 83) {
             unweightedList.add(3.0);
           } else if (double.parse(grade) >= 80) {
             unweightedList.add(2.7);
           } else if (double.parse(grade) >= 77) {
             unweightedList.add(2.3);
-          } else if (double.parse(grade) >= 74) {
+          } else if (double.parse(grade) >= 73) {
             unweightedList.add(2.0);
           } else if (double.parse(grade) >= 70) {
             unweightedList.add(1.7);
           } else if (double.parse(grade) >= 67) {
             unweightedList.add(1.3);
-          } else if (double.parse(grade) >= 64) {
+          } else if (double.parse(grade) >= 65) {
             unweightedList.add(1.0);
-          } else if (double.parse(grade) >= 60) {
-            unweightedList.add(0.7);
           } else if (double.parse(grade) >= 0) {
             unweightedList.add(0.0);
           }
@@ -1377,28 +1373,26 @@ class GPAPage extends State<MyGPAPage> {
     unweightedGPAMethod(grade) {
       if (grade != null && grade != "") {
         grade = grade.substring(0, grade.length - 1);
-        if (double.parse(grade) >= 94) {
+        if (double.parse(grade) >= 93) {
           return 4.0;
         } else if (double.parse(grade) >= 90) {
           return 3.7;
         } else if (double.parse(grade) >= 87) {
           return 3.3;
-        } else if (double.parse(grade) >= 84) {
+        } else if (double.parse(grade) >= 83) {
           return 3.0;
         } else if (double.parse(grade) >= 80) {
           return 2.7;
         } else if (double.parse(grade) >= 77) {
           return 2.3;
-        } else if (double.parse(grade) >= 74) {
+        } else if (double.parse(grade) >= 73) {
           return 2.0;
         } else if (double.parse(grade) >= 70) {
           return 1.7;
         } else if (double.parse(grade) >= 67) {
           return 1.3;
-        } else if (double.parse(grade) >= 64) {
+        } else if (double.parse(grade) >= 65) {
           return 1.0;
-        } else if (double.parse(grade) >= 60) {
-          return 0.7;
         } else if (double.parse(grade) >= 0) {
           return 0.0;
         }

@@ -706,6 +706,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
     var date = myClassList['Date List'];
     List rand = date.split(" ");
     date = rand[rand.length - 1];
+    print(date);
     date = date.substring(0, date.length - 1);
     var countGrades = assignmentsWeightScore.length;
     String studentGrade = widget.dataGradePage['Std Grade'];
@@ -737,11 +738,35 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
       }
     }
 
+    bool _isNumeric(String s) {
+      if (s == null) {
+        return false;
+      }
+      return double.parse(s, (e) => null) != null ||
+          int.parse(s, onError: (e) => null) != null;
+    }
+
     for (int i = 0; i < assignmentsWeightScore.length; i++) {
       double points;
-      if (assignmentsWeightScore[i] != '0' && assignmentsWeightScore[i] != '') {
-        points = double.parse(assignmentsWeightScore[i]);
-        totalPoints = double.parse(assignmentsTotalPoints[i]);
+      if (((assignmentsTotalPoints[i] == 'N/A' ||
+                  assignmentsTotalPoints[i] == '0.00') &&
+              (_isNumeric(assignmentsGrades[i]) &&
+                  double.parse(assignmentsGrades[i]) > 0)) ||
+          (assignmentsWeightScore[i] != '0' &&
+              assignmentsWeightScore[i] != '')) {
+        if ((assignmentsTotalPoints[i] == 'N/A' ||
+                assignmentsTotalPoints[i] == '0.00') &&
+            (_isNumeric(assignmentsGrades[i]) &&
+                double.parse(assignmentsGrades[i]) > 0)) {
+          assignmentsTotalPoints[i] = '0.00';
+          assignmentsWeight[i] = '0.00';
+          assignmentsWeightScore[i] = '0.00';
+          points = double.parse(assignmentsGrades[i]);
+          totalPoints = double.parse(assignmentsTotalPoints[i]);
+        } else {
+          points = double.parse(assignmentsWeightScore[i]);
+          totalPoints = double.parse(assignmentsTotalPoints[i]);
+        }
       } else {
         points = 0;
         totalPoints = 0;
@@ -761,6 +786,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
         }
       }
     }
+    print(majorPoints);
 
     if (minorTotal == 0) {
       minorPoints = 0;
@@ -978,14 +1004,6 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
       }
     }
 
-    bool _isNumeric(String s) {
-      if (s == null) {
-        return false;
-      }
-      return double.parse(s, (e) => null) != null ||
-          int.parse(s, onError: (e) => null) != null;
-    }
-
     void _checkEditError(int index) {
       if (((assignmentsGrades[index] == '' ||
               assignmentsGrades[index] == null ||
@@ -1000,6 +1018,10 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
         setState(() {
           editError = true;
         });
+      }
+      if (assignmentsTotalPoints[index] == '0.00' &&
+          _isNumeric(assignmentsGrades[index]) == true) {
+        editError = true;
       }
       if (assignmentsCategory[index] == 'Non-graded') {
         setState(() {
@@ -1048,7 +1070,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                         height: height / 2,
                         alignment: Alignment.center,
                         child: AutoSizeText(
-                          'You cannot edit this assignment\'s info right now. It is either weighted null or has a letter grade (CNS, CWS, T, L, etc.). Also if it is an Non-Graded assignment, it cannot be edited because they are weighted 0%.\n\nPlease try again later if the assignment is changed.',
+                          'You cannot edit this assignment\'s info right now. It is either weighted null, is extra credit, or has a letter grade (CNS, CWS, T, L, etc.). Also if it is an Non-Graded assignment, it cannot be edited because they are weighted 0%.\n\nPlease try again later if the assignment is changed.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.roboto(
                             fontWeight: FontWeight.bold,
@@ -1390,7 +1412,7 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
                               AutoSizeText(
-                                'Assignment Weight (0.0 to 1.0):',
+                                'Assignment Weight (0.0 to 1.5):',
                                 minFontSize: 16,
                                 style: GoogleFonts.oxygen(
                                   textStyle: TextStyle(
@@ -2181,7 +2203,14 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                           changeNum = index;
                                           _checkEditError(index);
                                           try {
-                                            if (((_isNumeric(assignmentsGrades[
+                                            if (!(assignmentsTotalPoints[
+                                                            index] ==
+                                                        '0.00' &&
+                                                    _isNumeric(
+                                                            assignmentsGrades[
+                                                                index]) ==
+                                                        true) &&
+                                                ((_isNumeric(assignmentsGrades[
                                                                 index]) ==
                                                             true ||
                                                         assignmentsGrades[
@@ -2240,9 +2269,9 @@ class AssignmentsPage extends State<MyAssignmentsPage> {
                                               addNew = true;
                                               editMyGrade = true;
                                             }
-                                          } on FormatException {
+                                          } on Exception {
                                             editError = true;
-                                          } on TypeError {
+                                          } on Error {
                                             editError = true;
                                           }
                                         },

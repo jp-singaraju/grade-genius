@@ -13,6 +13,7 @@ import 'package:flare_splash_screen/flare_splash_screen.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:local_auth/local_auth.dart';
 
 void main() {
   runApp(new MyApp());
@@ -368,6 +369,86 @@ class _LoginPage extends State<MyLoginPage> {
   int dropdownValue = 1;
   bool forgotInfo = false;
   bool tNc = false;
+  bool loginInfoThere = false;
+  bool randomInfoVar = false;
+
+  final LocalAuthentication _localAuthentication = LocalAuthentication();
+
+  Future<bool> _isBiometricAvailable() async {
+    bool isAvailable = false;
+    try {
+      isAvailable = await _localAuthentication.canCheckBiometrics;
+    } on PlatformException catch (e) {
+      print(e);
+    }
+
+    if (!mounted) return isAvailable;
+
+    isAvailable
+        ? print('Biometric is available!')
+        : print('Biometric is unavailable.');
+
+    return isAvailable;
+  }
+
+  Future<void> _getListOfBiometricTypes() async {
+    List<BiometricType> listOfBiometrics;
+    try {
+      listOfBiometrics = await _localAuthentication.getAvailableBiometrics();
+    } on PlatformException catch (e) {
+      print(e);
+    }
+
+    if (!mounted) return;
+
+    print(listOfBiometrics);
+  }
+
+  Future<void> _authenticateUser() async {
+    bool isAuthenticated = false;
+    try {
+      isAuthenticated = await _localAuthentication.authenticateWithBiometrics(
+        localizedReason:
+            "Please authenticate in order to login. First time users must manually login and then toggle on the username and password switches in the Settings tab.",
+        useErrorDialogs: true,
+        stickyAuth: true,
+      );
+    } on PlatformException catch (e) {
+      print(e);
+    }
+
+    if (!mounted) return;
+
+    isAuthenticated
+        ? print('User is authenticated!')
+        : print('User is not authenticated.');
+
+    if (isAuthenticated) {
+      bool userThere = await checkUser();
+      bool passThere = await checkPass();
+      if (userThere && passThere) {
+        setState(() {
+          loginInfoThere = true;
+        });
+      }
+      if (loginInfoThere) {
+        String myStr = await getUser();
+        setState(() {
+          username.text = myStr;
+        });
+        String myStr2 = await getPass();
+        setState(() {
+          password.text = myStr2;
+        });
+        await _loginButtonMethod();
+      }
+      if (username.text == '' || password.text == '') {
+        setState(() {
+          randomInfoVar = true;
+        });
+      }
+    }
+  }
 
   Future<HttpClientResponse> makeRequest(
       Uri uri, List<Cookie> requestCookies) async {
@@ -532,6 +613,266 @@ class _LoginPage extends State<MyLoginPage> {
     prefs.setString('password save', password);
   }
 
+  differenceMethod() async {
+    List oldAssignments = [];
+    List oldScores = [];
+    List oldClasses = [];
+    List currAssignments = [];
+    List currScores = [];
+    List currClasses = [];
+
+    String studentName = dataLoginPage.studentName;
+    String currentReportRun = dataLoginPage.reportRun;
+    try {
+      if (checkAvailableRun(studentName) == false) {
+        await addRun(currentReportRun, studentName);
+      }
+      if (checkAvailable(studentName) == false &&
+          checkAvailable2(studentName) == false) {
+        await addStringToSF(
+            (json.encode(dataLoginPage.classAssignments).toString()),
+            studentName);
+        await addStringToSF2(
+            (json.encode(dataLoginPage.classAverages).toString()), studentName);
+      } else {
+        oldReportRun = await getRun(studentName);
+        if (currentReportRun == oldReportRun) {
+          currentClassString =
+              json.encode(dataLoginPage.classAssignments).toString();
+          oldClassString = await getStringValuesSF(studentName);
+          currentC = json.encode(dataLoginPage.classAverages).toString();
+          oldC = await getStringValuesSF2(studentName);
+          await addRun(currentReportRun, studentName);
+          await addStringToSF2(
+              (json.encode(dataLoginPage.classAverages).toString()),
+              studentName);
+          await addStringToSF(
+              (json.encode(dataLoginPage.classAssignments).toString()),
+              studentName);
+
+          oldMap = await json.decode(oldClassString);
+          currentMap = await json.decode(currentClassString);
+          oldClassesMap = await json.decode(oldC);
+          currentClassesMap = await json.decode(currentC);
+
+          for (int index = 0;
+              index < currentClassesMap['Class Name'].length;
+              index++) {
+            String indexName = "Class " + (index + 1).toString();
+            oldAssignments.add(oldMap[indexName]['Assignments']);
+            oldScores.add(oldMap[indexName]['Score']);
+            oldClasses.add(oldClassesMap['Class Name'][index]);
+            currAssignments.add(currentMap[indexName]['Assignments']);
+            currScores.add(currentMap[indexName]['Score']);
+            currClasses.add(currentClassesMap['Class Name'][index]);
+          }
+        } else {
+          currentClassString =
+              json.encode(dataLoginPage.classAssignments).toString();
+          currentC = json.encode(dataLoginPage.classAverages).toString();
+          await addRun(currentReportRun, studentName);
+          await addStringToSF2(
+              (json.encode(dataLoginPage.classAverages).toString()),
+              studentName);
+          await addStringToSF(
+              (json.encode(dataLoginPage.classAssignments).toString()),
+              studentName);
+
+          currentMap = await json.decode(currentClassString);
+          currentClassesMap = await json.decode(currentC);
+
+          for (int index = 0;
+              index < currentClassesMap['Class Name'].length;
+              index++) {
+            String indexName = "Class " + (index + 1).toString();
+            currAssignments.add(currentMap[indexName]['Assignments']);
+            currScores.add(currentMap[indexName]['Score']);
+            currClasses.add(currentClassesMap['Class Name'][index]);
+          }
+
+          oldAssignments = [];
+          oldScores = [];
+          oldClasses = [];
+
+          for (int index = 0;
+              index < currentClassesMap['Class Name'].length;
+              index++) {
+            oldAssignments.add([]);
+            oldScores.add([]);
+            oldClasses.add("");
+          }
+        }
+      }
+      int value = 0;
+      for (int index = 0; index < currAssignments.length; index++) {
+        value = 0;
+        currAssignments[index].forEach((element) {
+          if (!oldAssignments[index].contains(element)) {
+            diffAssignments.add(element);
+            diffScores.add(currScores[index][value]);
+            diffClasses.add(currClasses[index]);
+          }
+          value++;
+        });
+      }
+    } on RangeError {
+      setState(() {
+        error = true;
+        diffAssignments = [];
+        diffScores = [];
+        diffClasses = [];
+      });
+    } on NoSuchMethodError {
+      setState(() {
+        error = true;
+        diffAssignments = [];
+        diffScores = [];
+        diffClasses = [];
+      });
+    } on FormatException {
+      setState(() {
+        error = true;
+        diffAssignments = [];
+        diffScores = [];
+        diffClasses = [];
+      });
+    } on Error {
+      setState(() {
+        error = true;
+        diffAssignments = [];
+        diffScores = [];
+        diffClasses = [];
+      });
+    }
+  }
+
+  _loginButtonMethod() async {
+    try {
+      setState(() {
+        user = username.text;
+        user = user.trim();
+        pass = password.text;
+        pass = pass.trim();
+        loginUrl = host + 'login';
+      });
+      setState(() {
+        errorMessage = '';
+        gotInfo = false;
+        _obscureText = true;
+        displayLoad = true;
+      });
+      FocusScope.of(context).unfocus();
+      var gradesList = '';
+      if (loginUrl == '' || user == '' || pass == '') {
+        setState(() {
+          isError = true;
+        });
+      }
+      if (isError == false) {
+        gradesList = await mainInfo(loginUrl);
+      }
+      if (isLoggedIn == true && gradeError == false) {
+        setState(() {
+          gotInfo = true;
+        });
+        Map infoMap;
+        Map averagesMap;
+        Map assignmentsMap;
+        List dates;
+        var currMap;
+        String reportRun;
+        setState(
+          () {
+            currMap = json.decode(gradesList);
+            infoMap = currMap['Info'];
+            averagesMap = currMap['Averages'];
+            dates = currMap["Date List"];
+            assignmentsMap = currMap['Grades'];
+            reportRun = currMap['Report Run'];
+          },
+        );
+        dataLoginPage = DataInfo(
+          dateList: dates,
+          user: user,
+          studentGrade: (infoMap['Grade']),
+          studentName: (infoMap['Name']),
+          studentID: (infoMap['ID']),
+          studentSchool: (infoMap['Home Campus']),
+          reportRun: (reportRun),
+          classAverages: averagesMap,
+          classAssignments: assignmentsMap,
+          myCookies: myCookies,
+        );
+        await differenceMethod();
+        bool userBoolMain = false;
+        bool passBoolMain = false;
+        if (await checkUserBool(infoMap['Name']) == true) {
+          userBoolMain = await getUserBool(infoMap['Name']);
+        }
+        if (await checkPassBool(infoMap['Name']) == true) {
+          passBoolMain = await getPassBool(infoMap['Name']);
+        }
+        if (userBoolMain == false) {
+          await addUserToSF("");
+        } else {
+          await addUserToSF(user);
+        }
+        if (passBoolMain == false) {
+          await addPassToSF("");
+        } else {
+          await addPassToSF(pass);
+        }
+        final dataLoginPage2 = DataInfo(
+          dateList: dates,
+          user: user,
+          studentGrade: (infoMap['Grade']),
+          studentName: (infoMap['Name']),
+          studentID: (infoMap['ID']),
+          studentSchool: (infoMap['Home Campus']),
+          reportRun: (reportRun),
+          classAverages: averagesMap,
+          classAssignments: assignmentsMap,
+          myCookies: myCookies,
+          newAssignments: diffAssignments,
+          newScores: diffScores,
+          newClasses: diffClasses,
+          username: user,
+          password: pass,
+          userBool: userBoolMain,
+          passBool: passBoolMain,
+          showInfo: true,
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MyWelcomePage(
+              dataHomePage: dataLoginPage2,
+            ),
+          ),
+        );
+      }
+      if (gotInfo == false) {
+        setState(() {
+          displayLoad = false;
+          textVisible = true;
+          password.clear();
+          errorMessage =
+              'Username and/or password is incorrect. Please try again.';
+          isError = false;
+        });
+      }
+    } on NoSuchMethodError {
+      gradeError = true;
+      isLoading = false;
+    } on HttpException {
+      gradeError = true;
+      isLoading = false;
+    } on Error {
+      gradeError = true;
+      isLoading = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -548,143 +889,9 @@ class _LoginPage extends State<MyLoginPage> {
       });
     }
 
-    differenceMethod() async {
-      List oldAssignments = [];
-      List oldScores = [];
-      List oldClasses = [];
-      List currAssignments = [];
-      List currScores = [];
-      List currClasses = [];
-
-      String studentName = dataLoginPage.studentName;
-      String currentReportRun = dataLoginPage.reportRun;
-      try {
-        if (checkAvailableRun(studentName) == false) {
-          await addRun(currentReportRun, studentName);
-        }
-        if (checkAvailable(studentName) == false &&
-            checkAvailable2(studentName) == false) {
-          await addStringToSF(
-              (json.encode(dataLoginPage.classAssignments).toString()),
-              studentName);
-          await addStringToSF2(
-              (json.encode(dataLoginPage.classAverages).toString()),
-              studentName);
-        } else {
-          oldReportRun = await getRun(studentName);
-          if (currentReportRun == oldReportRun) {
-            currentClassString =
-                json.encode(dataLoginPage.classAssignments).toString();
-            oldClassString = await getStringValuesSF(studentName);
-            currentC = json.encode(dataLoginPage.classAverages).toString();
-            oldC = await getStringValuesSF2(studentName);
-            await addRun(currentReportRun, studentName);
-            await addStringToSF2(
-                (json.encode(dataLoginPage.classAverages).toString()),
-                studentName);
-            await addStringToSF(
-                (json.encode(dataLoginPage.classAssignments).toString()),
-                studentName);
-
-            oldMap = await json.decode(oldClassString);
-            currentMap = await json.decode(currentClassString);
-            oldClassesMap = await json.decode(oldC);
-            currentClassesMap = await json.decode(currentC);
-
-            for (int index = 0;
-                index < currentClassesMap['Class Name'].length;
-                index++) {
-              String indexName = "Class " + (index + 1).toString();
-              oldAssignments.add(oldMap[indexName]['Assignments']);
-              oldScores.add(oldMap[indexName]['Score']);
-              oldClasses.add(oldClassesMap['Class Name'][index]);
-              currAssignments.add(currentMap[indexName]['Assignments']);
-              currScores.add(currentMap[indexName]['Score']);
-              currClasses.add(currentClassesMap['Class Name'][index]);
-            }
-          } else {
-            currentClassString =
-                json.encode(dataLoginPage.classAssignments).toString();
-            currentC = json.encode(dataLoginPage.classAverages).toString();
-            await addRun(currentReportRun, studentName);
-            await addStringToSF2(
-                (json.encode(dataLoginPage.classAverages).toString()),
-                studentName);
-            await addStringToSF(
-                (json.encode(dataLoginPage.classAssignments).toString()),
-                studentName);
-
-            currentMap = await json.decode(currentClassString);
-            currentClassesMap = await json.decode(currentC);
-
-            for (int index = 0;
-                index < currentClassesMap['Class Name'].length;
-                index++) {
-              String indexName = "Class " + (index + 1).toString();
-              currAssignments.add(currentMap[indexName]['Assignments']);
-              currScores.add(currentMap[indexName]['Score']);
-              currClasses.add(currentClassesMap['Class Name'][index]);
-            }
-
-            oldAssignments = [];
-            oldScores = [];
-            oldClasses = [];
-
-            for (int index = 0;
-                index < currentClassesMap['Class Name'].length;
-                index++) {
-              oldAssignments.add([]);
-              oldScores.add([]);
-              oldClasses.add("");
-            }
-          }
-        }
-        int value = 0;
-        for (int index = 0; index < currAssignments.length; index++) {
-          value = 0;
-          currAssignments[index].forEach((element) {
-            if (!oldAssignments[index].contains(element)) {
-              diffAssignments.add(element);
-              diffScores.add(currScores[index][value]);
-              diffClasses.add(currClasses[index]);
-            }
-            value++;
-          });
-        }
-      } on RangeError {
-        setState(() {
-          error = true;
-          diffAssignments = [];
-          diffScores = [];
-          diffClasses = [];
-        });
-      } on NoSuchMethodError {
-        setState(() {
-          error = true;
-          diffAssignments = [];
-          diffScores = [];
-          diffClasses = [];
-        });
-      } on FormatException {
-        setState(() {
-          error = true;
-          diffAssignments = [];
-          diffScores = [];
-          diffClasses = [];
-        });
-      } on Error {
-        setState(() {
-          error = true;
-          diffAssignments = [];
-          diffScores = [];
-          diffClasses = [];
-        });
-      }
-    }
-
     if (displayLoad == false) {
       loginButton = Container(
-        child: InkWell(
+        child: FlatButton(
           child: Container(
             width: width / 1.5,
             height: height / 16,
@@ -714,131 +921,8 @@ class _LoginPage extends State<MyLoginPage> {
               ),
             ),
           ),
-          onTap: () async {
-            try {
-              setState(() {
-                user = username.text;
-                user = user.trim();
-                pass = password.text;
-                pass = pass.trim();
-                loginUrl = host + 'login';
-              });
-              setState(() {
-                errorMessage = '';
-                gotInfo = false;
-                _obscureText = true;
-                displayLoad = true;
-              });
-              FocusScope.of(context).unfocus();
-              var gradesList = '';
-              if (loginUrl == '' || user == '' || pass == '') {
-                setState(() {
-                  isError = true;
-                });
-              }
-              if (isError == false) {
-                gradesList = await mainInfo(loginUrl);
-              }
-              if (isLoggedIn == true && gradeError == false) {
-                setState(() {
-                  gotInfo = true;
-                });
-                Map infoMap;
-                Map averagesMap;
-                Map assignmentsMap;
-                List dates;
-                var currMap;
-                String reportRun;
-                setState(
-                  () {
-                    currMap = json.decode(gradesList);
-                    infoMap = currMap['Info'];
-                    averagesMap = currMap['Averages'];
-                    dates = currMap["Date List"];
-                    assignmentsMap = currMap['Grades'];
-                    reportRun = currMap['Report Run'];
-                  },
-                );
-                dataLoginPage = DataInfo(
-                  dateList: dates,
-                  user: user,
-                  studentGrade: (infoMap['Grade']),
-                  studentName: (infoMap['Name']),
-                  studentID: (infoMap['ID']),
-                  studentSchool: (infoMap['Home Campus']),
-                  reportRun: (reportRun),
-                  classAverages: averagesMap,
-                  classAssignments: assignmentsMap,
-                  myCookies: myCookies,
-                );
-                await differenceMethod();
-                bool userBoolMain = false;
-                bool passBoolMain = false;
-                if (await checkUserBool(infoMap['Name']) == true) {
-                  userBoolMain = await getUserBool(infoMap['Name']);
-                }
-                if (await checkPassBool(infoMap['Name']) == true) {
-                  passBoolMain = await getPassBool(infoMap['Name']);
-                }
-                if (userBoolMain == false) {
-                  await addUserToSF("");
-                } else {
-                  await addUserToSF(user);
-                }
-                if (passBoolMain == false) {
-                  await addPassToSF("");
-                } else {
-                  await addPassToSF(pass);
-                }
-                final dataLoginPage2 = DataInfo(
-                  dateList: dates,
-                  user: user,
-                  studentGrade: (infoMap['Grade']),
-                  studentName: (infoMap['Name']),
-                  studentID: (infoMap['ID']),
-                  studentSchool: (infoMap['Home Campus']),
-                  reportRun: (reportRun),
-                  classAverages: averagesMap,
-                  classAssignments: assignmentsMap,
-                  myCookies: myCookies,
-                  newAssignments: diffAssignments,
-                  newScores: diffScores,
-                  newClasses: diffClasses,
-                  username: user,
-                  password: pass,
-                  userBool: userBoolMain,
-                  passBool: passBoolMain,
-                  showInfo: true,
-                );
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MyWelcomePage(
-                      dataHomePage: dataLoginPage2,
-                    ),
-                  ),
-                );
-              }
-              if (gotInfo == false) {
-                setState(() {
-                  displayLoad = false;
-                  textVisible = true;
-                  password.clear();
-                  errorMessage =
-                      'Username and/or password is incorrect. Please try again.';
-                  isError = false;
-                });
-              }
-            } on NoSuchMethodError {
-              gradeError = true;
-              isLoading = false;
-            } on HttpException {
-              gradeError = true;
-              isLoading = false;
-            } on Error {
-              gradeError = true;
-              isLoading = false;
-            }
+          onPressed: () async {
+            await _loginButtonMethod();
           },
         ),
       );
@@ -943,6 +1027,54 @@ class _LoginPage extends State<MyLoginPage> {
                       onPressed: () {
                         setState(() {
                           tNc = false;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        : new Container();
+
+    var infoNotThere = randomInfoVar
+        ? new WillPopScope(
+            onWillPop: _willPopCallback,
+            child: Stack(
+              children: [
+                Align(
+                  child: Container(
+                    height: height,
+                    width: width,
+                    color: Colors.white.withOpacity(.85),
+                  ),
+                ),
+                Align(
+                  child: Container(
+                    width: width / 1.1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[500],
+                        width: 2.6,
+                      ),
+                    ),
+                    child: SimpleDialogOption(
+                      child: Container(
+                        height: height / 5,
+                        alignment: Alignment.center,
+                        child: AutoSizeText(
+                          'One or more fields are empty. Grade Genius could not process the autofill. Please toggle on the username and password switches in the Settings tab.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          randomInfoVar = false;
                         });
                       },
                     ),
@@ -1253,19 +1385,9 @@ class _LoginPage extends State<MyLoginPage> {
                       ),
                       hoverColor: Colors.white70,
                       onTap: () async {
-                        bool userThere = await checkUser();
-                        bool passThere = await checkPass();
-                        if (userThere == true) {
-                          String myStr = await getUser();
-                          setState(() {
-                            username.text = myStr;
-                          });
-                        }
-                        if (passThere == true) {
-                          String myStr = await getPass();
-                          setState(() {
-                            password.text = myStr;
-                          });
+                        if (await _isBiometricAvailable()) {
+                          await _getListOfBiometricTypes();
+                          await _authenticateUser();
                         }
                       },
                     ),
@@ -1334,6 +1456,10 @@ class _LoginPage extends State<MyLoginPage> {
             ),
             Align(
               child: showTerms,
+              alignment: FractionalOffset.center,
+            ),
+            Align(
+              child: infoNotThere,
               alignment: FractionalOffset.center,
             ),
             Align(

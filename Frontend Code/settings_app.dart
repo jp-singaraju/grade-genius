@@ -125,7 +125,7 @@ class SettingsApp extends State<MySettingsApp> {
                     Container(
                       alignment: Alignment.centerLeft,
                       child: AutoSizeText(
-                        "• The AutoFill feature allows you to choose whether or not you want your username and/or password saved.\n",
+                        "• The AutoFill feature allows you to login using fingerprint/face-id if username and password switches are toggled on.\n",
                         minFontSize: 14,
                         textAlign: TextAlign.left,
                         style: GoogleFonts.roboto(
@@ -276,7 +276,7 @@ class SettingsApp extends State<MySettingsApp> {
                 Container(
                   padding: EdgeInsets.all(5),
                   child: AutoSizeText(
-                    "If the username and/or password slots are switched on, the login info will already be saved next time the user logs in.",
+                    "If the username and/or password slots are switched on, the login info will already be saved next time the user logs in. The user just has to press autofill.",
                     minFontSize: 14,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.cabin(
